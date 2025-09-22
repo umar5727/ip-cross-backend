@@ -1,0 +1,73 @@
+{
+  "id": "f7a9b2c3-d4e5-6f7a-8b9c-0d1e2f3a4b5c",
+  "name": "Ecommerce Backend Environment",
+  "values": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userEmail",
+      "value": "umerkhan5727@gmail.com",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userPassword",
+      "value": "1234",
+      "type": "secret",
+      "enabled": true
+    },
+    {
+      "key": "userFirstName",
+      "value": "Test",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userLastName",
+      "value": "User",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "userTelephone",
+      "value": "1234567890",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "authToken",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    },
+    {
+      "key": "sessionId",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    },
+    {
+      "key": "productId",
+      "value": "24387",
+      "type": "default",
+      "enabled": true
+    },
+    {
+      "key": "cartItemId",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "any",
+      "enabled": true
+    }
+  ],
+  "_postman_variable_scope": "environment"
+}

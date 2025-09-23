@@ -11,6 +11,10 @@ const OrderProduct = require('./order/order_product.model');
 const OrderHistory = require('./order/order_history.model');
 const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
+const Address = require('./customer/address.model');
+const Wishlist = require('./customer/wishlist.model');
+const CustomerAccount = require('./customer/customer_account.model');
+const PincodeHistory = require('./customer/pincode_history.model');
 
 // Define relationships
 // Many-to-many relationship between Product and Category
@@ -57,6 +61,19 @@ OrderProduct.belongsTo(Order, { foreignKey: 'order_id' });
 Order.hasMany(OrderHistory, { foreignKey: 'order_id' });
 OrderHistory.belongsTo(Order, { foreignKey: 'order_id' });
 
+// Customer relationships
+Customer.hasMany(Address, { foreignKey: 'customer_id' });
+Address.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+Customer.hasMany(Wishlist, { foreignKey: 'customer_id' });
+Wishlist.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+Product.hasMany(Wishlist, { foreignKey: 'product_id' });
+Wishlist.belongsTo(Product, { foreignKey: 'product_id' });
+
+Customer.hasMany(PincodeHistory, { foreignKey: 'customer_id' });
+PincodeHistory.belongsTo(Customer, { foreignKey: 'customer_id' });
+
 module.exports = {
   Customer,
   Product,
@@ -70,5 +87,9 @@ module.exports = {
   ProductDescription,
   ProductImage,
   ProductVariant,
-  Cart
+  Cart,
+  Address,
+  Wishlist,
+  CustomerAccount,
+  PincodeHistory
 };

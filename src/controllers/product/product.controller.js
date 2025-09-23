@@ -54,12 +54,14 @@ exports.getAllProducts = [
           },
           {
             model: ProductDescription,
+            as: 'ProductDescriptions',
             attributes: ['name', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
             where: { language_id: languageId },
             required: false
           },
           {
             model: ProductImage,
+            as: 'ProductImages',
             attributes: ['image', 'sort_order'],
             required: false
           }
@@ -161,12 +163,14 @@ exports.getProductById = [
           },
           {
             model: ProductDescription,
+            as: 'ProductDescriptions',
             attributes: ['name', 'description', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
             where: { language_id: languageId },
             required: false
           },
           {
             model: ProductImage,
+            as: 'ProductImages',
             attributes: ['image', 'sort_order'],
             required: false
           },

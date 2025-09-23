@@ -119,29 +119,13 @@ exports.login = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
-    // First, check if there's an existing token for this customer
-    const existingToken = await new Promise((resolve) => {
-      redisClient.get(`auth_${customer.customer_id}`, (err, result) => {
-        if (err) {
-          console.error('Error checking existing token:', err);
-          resolve(null);
-        } else {
-          resolve(result);
-        }
-      });
-    });
-
-    // If there's an existing token, add it to the blacklist
-    if (existingToken) {
-      console.log(`Found existing token for customer ${customer.customer_id}, blacklisting it`);
-      redisClient.set(`blacklist_${existingToken}`, 'invalidated');
-      redisClient.expire(`blacklist_${existingToken}`, 86400);
-    }
-
-    // Store new token in Redis
+    // Store new token in Redis (simplified approach)
     console.log(`Storing token for customer ID: ${customer.customer_id}`);
-    redisClient.set(`auth_${customer.customer_id}`, token);
-    redisClient.expire(`auth_${customer.customer_id}`, 86400);
+    try {
+      redisClient.set(`auth_${customer.customer_id}`, token, 'EX', 86400);
+    } catch (redisError) {
+      console.error('Redis error (non-blocking):', redisError);
+    }
     
     // Remove password from response
     const { password: _, ...customerData } = customer.toJSON();

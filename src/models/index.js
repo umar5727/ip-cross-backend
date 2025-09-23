@@ -11,11 +11,11 @@ ProductDiscount.belongsTo(Product, { foreignKey: 'product_id' });
 const Category = require('./category/category.model');
 const CategoryDescription = require('./category/category_description.model');
 const Customer = require('./customer/customer.model');
-const Order = require('./order/order.model');
-const OrderProduct = require('./order/order_product.model');
-const OrderHistory = require('./order/order_history.model');
-const OrderStatus = require('./order/order_status.model');
-const OrderTotal = require('./order/order_total.model');
+const Order = require('./customer/order.model');
+const OrderProduct = require('./customer/order_product.model');
+const OrderHistory = require('./customer/order_history.model');
+const OrderStatus = require('./customer/order_status.model');
+const OrderTotal = require('./customer/order_total.model');
 const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
 

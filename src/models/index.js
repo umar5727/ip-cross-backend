@@ -2,7 +2,12 @@ const Product = require('./product/product.model');
 const ProductDescription = require('./product/product_description.model');
 const ProductImage = require('./product/product_image.model');
 const ProductSpecial = require('./product/product_special.model');
+const ProductDiscount = require('./product/product_discount.model');
 const ProductVariant = require('./product/product_variant.model');
+
+// Add relationship for ProductDiscount
+Product.hasMany(ProductDiscount, { foreignKey: 'product_id' });
+ProductDiscount.belongsTo(Product, { foreignKey: 'product_id' });
 const Category = require('./category/category.model');
 const CategoryDescription = require('./category/category_description.model');
 const Customer = require('./customer/customer.model');
@@ -11,10 +16,6 @@ const OrderProduct = require('./order/order_product.model');
 const OrderHistory = require('./order/order_history.model');
 const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
-const Address = require('./customer/address.model');
-const Wishlist = require('./customer/wishlist.model');
-const CustomerAccount = require('./customer/customer_account.model');
-const PincodeHistory = require('./customer/pincode_history.model');
 
 // Define relationships
 // Many-to-many relationship between Product and Category
@@ -61,19 +62,6 @@ OrderProduct.belongsTo(Order, { foreignKey: 'order_id' });
 Order.hasMany(OrderHistory, { foreignKey: 'order_id' });
 OrderHistory.belongsTo(Order, { foreignKey: 'order_id' });
 
-// Customer relationships
-Customer.hasMany(Address, { foreignKey: 'customer_id' });
-Address.belongsTo(Customer, { foreignKey: 'customer_id' });
-
-Customer.hasMany(Wishlist, { foreignKey: 'customer_id' });
-Wishlist.belongsTo(Customer, { foreignKey: 'customer_id' });
-
-Product.hasMany(Wishlist, { foreignKey: 'product_id' });
-Wishlist.belongsTo(Product, { foreignKey: 'product_id' });
-
-Customer.hasMany(PincodeHistory, { foreignKey: 'customer_id' });
-PincodeHistory.belongsTo(Customer, { foreignKey: 'customer_id' });
-
 module.exports = {
   Customer,
   Product,
@@ -87,9 +75,5 @@ module.exports = {
   ProductDescription,
   ProductImage,
   ProductVariant,
-  Cart,
-  Address,
-  Wishlist,
-  CustomerAccount,
-  PincodeHistory
+  Cart
 };

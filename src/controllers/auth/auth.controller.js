@@ -146,6 +146,60 @@ exports.login = async (req, res) => {
     // Remove password from response
     const { password: _, ...customerData } = customer.toJSON();
     
+    // Transfer guest cart items to customer account if session_id is provided
+    if (req.body.session_id) {
+      try {
+        const { Cart } = require('../../models');
+        const sessionId = req.body.session_id;
+        
+        console.log(`Transferring cart items from session ${sessionId} to customer ${customer.customer_id}`);
+        
+        // Find all cart items with this session_id and customer_id = 0 (guest)
+        const guestCartItems = await Cart.findAll({
+          where: {
+            session_id: sessionId,
+            customer_id: 0
+          }
+        });
+        
+        console.log(`Found ${guestCartItems.length} guest cart items to transfer`);
+        
+        // For each guest cart item
+        for (const item of guestCartItems) {
+          // Check if customer already has this product in cart
+          const existingItem = await Cart.findOne({
+            where: {
+              customer_id: customer.customer_id,
+              product_id: item.product_id,
+              option: item.option
+            }
+          });
+          
+          if (existingItem) {
+            // Update quantity of existing item
+            console.log(`Updating existing cart item for product ${item.product_id}`);
+            await existingItem.update({
+              quantity: existingItem.quantity + item.quantity
+            });
+            
+            // Remove the guest cart item
+            await item.destroy();
+          } else {
+            // Update the guest cart item to belong to the customer
+            console.log(`Transferring cart item for product ${item.product_id}`);
+            await item.update({
+              customer_id: customer.customer_id
+            });
+          }
+        }
+        
+        console.log('Cart transfer completed successfully');
+      } catch (cartError) {
+        console.error('Error transferring cart:', cartError);
+        // Don't fail the login if cart transfer fails
+      }
+    }
+    
     // Send response
     res.status(200).json({
       success: true,

@@ -54,7 +54,7 @@ exports.getAllProducts = [
           },
           {
             model: ProductDescription,
-            attributes: ['name', 'description', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
+            attributes: ['name', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
             where: { language_id: languageId },
             required: false
           },

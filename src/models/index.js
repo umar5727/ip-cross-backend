@@ -9,6 +9,8 @@ const Customer = require('./customer/customer.model');
 const Order = require('./order/order.model');
 const OrderProduct = require('./order/order_product.model');
 const OrderHistory = require('./order/order_history.model');
+const OrderStatus = require('./order/order_status.model');
+const OrderTotal = require('./order/order_total.model');
 const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
 const Address = require('./customer/address.model');
@@ -34,11 +36,11 @@ Category.belongsToMany(Product, {
 Product.hasMany(ProductSpecial, { foreignKey: 'product_id' });
 ProductSpecial.belongsTo(Product, { foreignKey: 'product_id' });
 
-Product.hasMany(ProductImage, { foreignKey: 'product_id' });
-ProductImage.belongsTo(Product, { foreignKey: 'product_id' });
+Product.hasMany(ProductImage, { foreignKey: 'product_id', as: 'ProductImages' });
+ProductImage.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
 
-Product.hasMany(ProductDescription, { foreignKey: 'product_id' });
-ProductDescription.belongsTo(Product, { foreignKey: 'product_id' });
+Product.hasMany(ProductDescription, { foreignKey: 'product_id', as: 'ProductDescriptions' });
+ProductDescription.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
 
 Product.hasMany(ProductVariant, { foreignKey: 'product_id' });
 ProductVariant.belongsTo(Product, { foreignKey: 'product_id' });
@@ -51,15 +53,25 @@ CategoryDescription.belongsTo(Category, { foreignKey: 'category_id' });
 Customer.hasMany(Order, { foreignKey: 'customer_id' });
 Order.belongsTo(Customer, { foreignKey: 'customer_id' });
 
-Order.hasMany(OrderProduct, { foreignKey: 'order_id' });
+Order.hasMany(OrderProduct, { foreignKey: 'order_id', as: 'OrderProducts' });
+OrderProduct.belongsTo(Order, { foreignKey: 'order_id', as: 'Order' });
+OrderProduct.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
+Product.hasMany(OrderProduct, { foreignKey: 'product_id', as: 'OrderProducts' });
 
 // Cart relationships
 Product.hasMany(Cart, { foreignKey: 'product_id' });
 Cart.belongsTo(Product, { foreignKey: 'product_id' });
-OrderProduct.belongsTo(Order, { foreignKey: 'order_id' });
 
-Order.hasMany(OrderHistory, { foreignKey: 'order_id' });
-OrderHistory.belongsTo(Order, { foreignKey: 'order_id' });
+Order.hasMany(OrderHistory, { foreignKey: 'order_id', as: 'OrderHistories' });
+OrderHistory.belongsTo(Order, { foreignKey: 'order_id', as: 'Order' });
+OrderHistory.belongsTo(OrderStatus, { foreignKey: 'order_status_id', as: 'order_status' });
+OrderStatus.hasMany(OrderHistory, { foreignKey: 'order_status_id', as: 'order_histories' });
+
+Order.hasMany(OrderTotal, { foreignKey: 'order_id', as: 'OrderTotals' });
+OrderTotal.belongsTo(Order, { foreignKey: 'order_id', as: 'Order' });
+
+Order.belongsTo(OrderStatus, { foreignKey: 'order_status_id', targetKey: 'order_status_id', as: 'order_status' });
+OrderStatus.hasMany(Order, { foreignKey: 'order_status_id', as: 'orders' });
 
 // Customer relationships
 Customer.hasMany(Address, { foreignKey: 'customer_id' });
@@ -82,6 +94,8 @@ module.exports = {
   Order,
   OrderProduct,
   OrderHistory,
+  OrderStatus,
+  OrderTotal,
   ProductCategory,
   ProductSpecial,
   ProductDescription,

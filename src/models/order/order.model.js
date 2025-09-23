@@ -172,6 +172,70 @@ const Order = sequelize.define('order', {
   date_modified: {
     type: DataTypes.DATE,
     allowNull: false
+  },
+  comment: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  language_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1
+  },
+  currency_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1
+  },
+  currency_code: {
+    type: DataTypes.STRING(3),
+    allowNull: false,
+    defaultValue: 'USD'
+  },
+  currency_value: {
+    type: DataTypes.DECIMAL(15, 8),
+    allowNull: false,
+    defaultValue: 1.00000000
+  },
+  awbno: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  total_courier_charges: {
+    type: DataTypes.DECIMAL(15, 4),
+    allowNull: true,
+    defaultValue: 0.0000
+  },
+  affiliate_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  commission: {
+    type: DataTypes.DECIMAL(15, 4),
+    allowNull: false,
+    defaultValue: 0.0000
+  },
+  marketing_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 0
+  },
+  tracking: {
+    type: DataTypes.STRING(64),
+    allowNull: false
+  },
+  forwarded_ip: {
+    type: DataTypes.STRING(40),
+    allowNull: false
+  },
+  user_agent: {
+    type: DataTypes.STRING(255),
+    allowNull: false
+  },
+  accept_language: {
+    type: DataTypes.STRING(255),
+    allowNull: false
   }
 }, {
   tableName: 'oc_order',

@@ -18,6 +18,8 @@ const OrderStatus = require('./customer/order_status.model');
 const OrderTotal = require('./customer/order_total.model');
 const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
+const Ticket = require('./ticket/ticket.model');
+const TicketReply = require('./ticket/ticket_reply.model');
 
 // Define relationships
 // Many-to-many relationship between Product and Category
@@ -74,6 +76,13 @@ OrderTotal.belongsTo(Order, { foreignKey: 'order_id', as: 'Order' });
 Order.belongsTo(OrderStatus, { foreignKey: 'order_status_id', targetKey: 'order_status_id', as: 'order_status' });
 OrderStatus.hasMany(Order, { foreignKey: 'order_status_id', as: 'orders' });
 
+// Ticket relationships
+Customer.hasMany(Ticket, { foreignKey: 'customer_id' });
+Ticket.belongsTo(Customer, { foreignKey: 'customer_id' });
+
+Ticket.hasMany(TicketReply, { foreignKey: 'ticket_id' });
+TicketReply.belongsTo(Ticket, { foreignKey: 'ticket_id' });
+
 module.exports = {
   Customer,
   Product,
@@ -89,5 +98,7 @@ module.exports = {
   ProductDescription,
   ProductImage,
   ProductVariant,
-  Cart
+  Cart,
+  Ticket,
+  TicketReply
 };

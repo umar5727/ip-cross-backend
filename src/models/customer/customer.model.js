@@ -97,19 +97,8 @@ const Customer = sequelize.define('customer', {
 
 // Instance method to check password
 Customer.prototype.comparePassword = async function(candidatePassword) {
-  // OpenCart style password check
-  if (this.salt) {
-    // Using OpenCart's SHA1 method with salt
-    const hash1 = require('crypto').createHash('sha1').update(candidatePassword).digest('hex');
-    const hash2 = require('crypto').createHash('sha1').update(this.salt + hash1).digest('hex');
-    const finalHash = require('crypto').createHash('sha1').update(this.salt + hash2).digest('hex');
-    
-    return this.password === finalHash;
-  } else {
-    // Fallback to MD5 (OpenCart's alternative method)
-    const md5Hash = require('crypto').createHash('md5').update(candidatePassword).digest('hex');
-    return this.password === md5Hash;
-  }
+  // Use bcrypt to compare password since we're hashing with bcrypt in hooks
+  return await bcrypt.compare(candidatePassword, this.password);
 };
 
 module.exports = Customer;

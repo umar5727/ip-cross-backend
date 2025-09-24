@@ -20,6 +20,7 @@ const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
 const Ticket = require('./ticket/ticket.model');
 const TicketReply = require('./ticket/ticket_reply.model');
+const { Referral, Offer, ReferralOrder } = require('./referral');
 
 // Define relationships
 // Many-to-many relationship between Product and Category
@@ -80,8 +81,11 @@ OrderStatus.hasMany(Order, { foreignKey: 'order_status_id', as: 'orders' });
 Customer.hasMany(Ticket, { foreignKey: 'customer_id' });
 Ticket.belongsTo(Customer, { foreignKey: 'customer_id' });
 
-Ticket.hasMany(TicketReply, { foreignKey: 'ticket_id' });
+Ticket.hasMany(TicketReply, { foreignKey: 'ticket_id', as: 'TicketReplies' });
 TicketReply.belongsTo(Ticket, { foreignKey: 'ticket_id' });
+
+Customer.hasMany(TicketReply, { foreignKey: 'customer_id' });
+TicketReply.belongsTo(Customer, { foreignKey: 'customer_id' });
 
 module.exports = {
   Customer,
@@ -100,5 +104,8 @@ module.exports = {
   ProductVariant,
   Cart,
   Ticket,
-  TicketReply
+  TicketReply,
+  Referral,
+  Offer,
+  ReferralOrder
 };

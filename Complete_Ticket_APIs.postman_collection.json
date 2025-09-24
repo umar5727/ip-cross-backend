@@ -1,0 +1,338 @@
+{
+	"info": {
+		"_postman_id": "ticket-apis-collection",
+		"name": "Complete Ticket APIs",
+		"description": "Complete collection of customer and admin ticket management endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Customer Ticket APIs",
+			"item": [
+				{
+					"name": "Get Ticket Categories",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:3000/api/tickets/categories",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tickets", "categories"]
+						}
+					}
+				},
+				{
+					"name": "Create New Ticket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"subject\": \"Test ticket subject\",\n  \"description\": \"This is a test ticket description\",\n  \"priority\": \"medium\",\n  \"category_id\": 1\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/tickets",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tickets"]
+						},
+						"description": "Creates a new customer support ticket. The category_id must be a valid ID from the ticket categories endpoint (1-6)."
+					}
+				},
+				{
+					"name": "Get Customer Tickets",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:3000/api/tickets",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tickets"]
+						}
+					}
+				},
+				{
+					"name": "Get Ticket by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:3000/api/tickets/59",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tickets", "59"]
+						}
+					}
+				},
+				{
+					"name": "Add Reply to Ticket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"This is a customer reply to the ticket\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/tickets/59/reply",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "tickets", "59", "reply"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "Admin Ticket APIs",
+			"item": [
+				{
+					"name": "Get All Customer Tickets (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:3000/api/admin/tickets",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "admin", "tickets"]
+						}
+					}
+				},
+				{
+					"name": "Get Ticket by ID (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://localhost:3000/api/admin/tickets/59",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "admin", "tickets", "59"]
+						}
+					}
+				},
+				{
+					"name": "Add Admin Reply to Ticket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"message\": \"This is an admin reply to the ticket\",\n  \"user_type\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/admin/tickets/59/reply",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "admin", "tickets", "59", "reply"]
+						}
+					}
+				},
+				{
+					"name": "Update Ticket Status",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"closed\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/admin/tickets/59/status",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "admin", "tickets", "59", "status"]
+						}
+					}
+				},
+				{
+					"name": "Update Ticket Details",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-id",
+								"value": "8779",
+								"type": "text"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"subject\": \"Updated ticket subject\",\n  \"description\": \"Updated ticket description\",\n  \"priority\": \"high\"\n}"
+						},
+						"url": {
+							"raw": "http://localhost:3000/api/admin/tickets/59",
+							"protocol": "http",
+							"host": ["localhost"],
+							"port": "3000",
+							"path": ["api", "admin", "tickets", "59"]
+						}
+					}
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "customerId",
+			"value": "8779",
+			"type": "string"
+		},
+		{
+			"key": "customerEmail",
+			"value": "test@example.com",
+			"type": "string"
+		},
+		{
+			"key": "ticketId",
+			"value": "59",
+			"type": "string"
+		}
+	]
+}

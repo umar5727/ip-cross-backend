@@ -123,6 +123,7 @@ const getTicketById = async (req, res) => {
         },
         {
           model: TicketReply,
+          as: 'TicketReplies',
           order: [['date_added', 'ASC']]
         }
       ]

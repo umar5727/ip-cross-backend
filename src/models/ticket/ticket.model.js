@@ -27,10 +27,6 @@ const Ticket = sequelize.define('Ticket', {
     type: DataTypes.STRING(255),
     allowNull: false
   },
-  message: {
-    type: DataTypes.TEXT,
-    allowNull: false
-  },
   status: {
     type: DataTypes.STRING(32),
     defaultValue: 'open'

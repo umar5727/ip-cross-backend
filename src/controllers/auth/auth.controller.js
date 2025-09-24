@@ -30,12 +30,15 @@ exports.register = async (req, res) => {
 
     // Generate token
     const token = jwt.sign(
-      { id: customer.customer_id },
+      { 
+        id: customer.customer_id,
+        customer_id: customer.customer_id 
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
 
-    // Remove password from response
+    // Remove password from response but keep salt
     const { password: _, ...customerData } = customer.toJSON();
 
     res.status(201).json({
@@ -114,7 +117,7 @@ exports.login = async (req, res) => {
 
     // Generate token
     const token = jwt.sign(
-      { id: customer.customer_id },
+      { id: customer.customer_id, customer_id: customer.customer_id },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
@@ -127,8 +130,13 @@ exports.login = async (req, res) => {
       console.error('Redis error (non-blocking):', redisError);
     }
     
-    // Remove password from response
+    // Remove password from response but keep salt
     const { password: _, ...customerData } = customer.toJSON();
+    
+    // Ensure salt is included in the response
+    if (!customerData.salt && customer.salt) {
+      customerData.salt = customer.salt;
+    }
     
     // Transfer guest cart items to customer account if session_id is provided
     if (req.body.session_id) {
@@ -184,11 +192,15 @@ exports.login = async (req, res) => {
       }
     }
     
-    // Send response
+    // Send response with explicit status 200 and salt included
     res.status(200).json({
       success: true,
       token,
-      data: customerData
+      salt: customer.salt, // Explicitly include salt at the top level
+      customer: {
+        id: customer.customer_id,
+        ...customerData
+      }
     });
   } catch (error) {
     console.error('Login error:', error);

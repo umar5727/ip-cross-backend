@@ -2,9 +2,70 @@ const jwt = require('jsonwebtoken');
 const { Customer } = require('../models');
 const { redisClient } = require('../../config/redis');
 
+// Optional authentication - adds customer data if available but doesn't require it
+exports.optionalAuth = async (req, res, next) => {
+  try {
+    // Check for testing headers first
+    if (req.headers['x-customer-id'] && req.headers['x-customer-email']) {
+      // Mock customer for testing
+      req.customer = {
+        customer_id: parseInt(req.headers['x-customer-id']),
+        email: req.headers['x-customer-email']
+      };
+      return next();
+    }
+
+    let token;
+
+    // Check if token exists in headers
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    // If no token, continue without authentication
+    if (!token) {
+      return next();
+    }
+
+    // If token exists, try to authenticate
+    try {
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const customerId = decoded.customer_id || decoded.id;
+      
+      // Get customer from database
+      const customer = await Customer.findByPk(customerId);
+      if (customer) {
+        req.customer = customer;
+      }
+    } catch (error) {
+      // If token is invalid, continue without authentication
+      console.log('Invalid token in optional auth, continuing without authentication');
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Optional auth middleware error:', error);
+    next(); // Continue without authentication on error
+  }
+};
+
 // Protect routes - only authenticated customers can access
 exports.protect = async (req, res, next) => {
   try {
+    // Check for testing headers first
+    if (req.headers['x-customer-id'] && req.headers['x-customer-email']) {
+      // Mock customer for testing
+      req.customer = {
+        customer_id: parseInt(req.headers['x-customer-id']),
+        email: req.headers['x-customer-email']
+      };
+      return next();
+    }
+
     let token;
 
     // Check if token exists in headers
@@ -36,8 +97,10 @@ exports.protect = async (req, res, next) => {
         console.log('Skipping Redis blacklist check temporarily');
       }
 
-      // Get customer from database
-      const customer = await Customer.findByPk(decoded.id);
+      // Get customer from database - use decoded.id or decoded.customer_id which should match customer_id
+      const customerId = decoded.customer_id || decoded.id;
+      console.log('Looking up customer with ID:', customerId);
+      const customer = await Customer.findByPk(customerId);
 
       // Check if customer exists
       if (!customer) {

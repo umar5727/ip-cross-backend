@@ -15,6 +15,10 @@ const TicketReply = sequelize.define('TicketReply', {
       key: 'ticket_id'
     }
   },
+  customer_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
   message: {
     type: DataTypes.TEXT,
     allowNull: false
@@ -22,16 +26,12 @@ const TicketReply = sequelize.define('TicketReply', {
   file: {
     type: DataTypes.STRING(255),
     allowNull: true,
-    comment: 'Uploaded file name for reply'
+    defaultValue: null
   },
   user_type: {
     type: DataTypes.STRING(32),
     allowNull: false,
     defaultValue: 'customer'
-  },
-  customer_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true
   },
   date_added: {
     type: DataTypes.DATE,
@@ -45,7 +45,7 @@ const TicketReply = sequelize.define('TicketReply', {
       fields: ['ticket_id']
     },
     {
-      fields: ['sender_type', 'sender_id']
+      fields: ['customer_id']
     }
   ]
 });

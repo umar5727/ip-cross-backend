@@ -261,7 +261,12 @@ exports.setDefaultAddress = async (req, res) => {
 // Get default address
 exports.getDefaultAddress = async (req, res) => {
   try {
-    const customerId = req.customer.customer_id;
+    let customerId = req.customer.customer_id;
+    if (!customerId) {
+      customerId = req.user.customer_id;
+    }
+       
+
     const defaultAddress = await Address.getDefaultAddress(customerId);
 
     if (!defaultAddress) {

@@ -31,6 +31,7 @@ exports.confirmCheckout = async (req, res) => {
       comment,
       agree_terms,
       address_id,
+      shipping_address_id,
       alternate_mobile_number,
       'gst-no': gstNo
     } = req.body;
@@ -64,31 +65,56 @@ exports.confirmCheckout = async (req, res) => {
       throw new Error('Authentication failed. Please login again.');
     }
 
-    // 2. Get customer's default address if no address_id provided
+    // 2. Get shipping address from shipping_address_id or address_id
     let shipping_address;
-    if (!address_id) {
-      const defaultAddress = await Address.getDefaultAddress(customer_id);
-      if (!defaultAddress) {
-        throw new Error('No default address found for customer');
-      }
-      shipping_address = defaultAddress;
-    } else {
+    const addressIdToUse = shipping_address_id || address_id;
+    
+    if (addressIdToUse) {
       // Get address from address_id
-      const addressById = await Address.getAddress(address_id, customer_id);
+      console.log(`Looking for shipping address with ID ${addressIdToUse} for customer ${customer_id}`);
+      const addressById = await Address.getAddress(addressIdToUse, customer_id);
+      console.log(`Shipping address found by ID: ${addressById ? 'Yes' : 'No'}`);
+      
       if (!addressById) {
-        throw new Error('Address not found');
+        throw new Error('Shipping address not found');
       }
       shipping_address = addressById;
+    } else {
+      throw new Error('No shipping address provided');
     }
 
-    // Use shipping address as payment address as well
-    const payment_address = shipping_address;
+    // 3. Get payment address (default address)
+    console.log(`Looking for default address for customer ${customer_id} to use as payment address`);
+    const defaultAddress = await Address.getDefaultAddress(customer_id);
+    console.log(`Default address found for payment: ${defaultAddress ? 'Yes' : 'No'}`);
+    
+    let payment_address;
+    if (!defaultAddress) {
+      // Instead of throwing an error, use shipping address as payment address
+      console.log('Using shipping address as payment address');
+      payment_address = shipping_address;
+    } else {
+      payment_address = defaultAddress;
+    }
 
     // 3. Get cart items
-    const cartData = await Cart.getCart(customer_id);
-    if (!cartData || !cartData.products || !cartData.products.length) {
+    const cartItems = await Cart.findAll({
+      where: { customer_id }
+    });
+    
+    if (!cartItems || cartItems.length === 0) {
       throw new Error('Your cart is empty');
     }
+    
+    // Format cart data in the expected structure
+    const cartData = {
+      products: cartItems.map(item => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        option: item.option ? JSON.parse(item.option) : {}
+      })),
+      total_items: cartItems.length
+    };
 
     // 4. Process checkout logic here...
     // This would include creating orders, processing payment, etc.

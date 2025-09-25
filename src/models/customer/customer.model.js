@@ -1,6 +1,6 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../../../config/database');
-const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 
 const Customer = sequelize.define('customer', {
   customer_id: {
@@ -82,23 +82,37 @@ const Customer = sequelize.define('customer', {
   hooks: {
     beforeCreate: async (customer) => {
       if (customer.password) {
-        const salt = await bcrypt.genSalt(10);
-        customer.password = await bcrypt.hash(customer.password, salt);
+        // Generate a 9-character salt (like OpenCart)
+        const salt = crypto.randomBytes(9).toString('hex').substring(0, 9);
+        customer.salt = salt;
+        // Use OpenCart's password format: sha1(salt + sha1(salt + sha1(password)))
+        const sha1Password = crypto.createHash('sha1').update(customer.password).digest('hex');
+        const sha1SaltPassword = crypto.createHash('sha1').update(salt + sha1Password).digest('hex');
+        customer.password = crypto.createHash('sha1').update(salt + sha1SaltPassword).digest('hex');
       }
     },
     beforeUpdate: async (customer) => {
       if (customer.changed('password')) {
-        const salt = await bcrypt.genSalt(10);
-        customer.password = await bcrypt.hash(customer.password, salt);
+        // Generate a 9-character salt (like OpenCart)
+        const salt = crypto.randomBytes(9).toString('hex').substring(0, 9);
+        customer.salt = salt;
+        // Use OpenCart's password format: sha1(salt + sha1(salt + sha1(password)))
+        const sha1Password = crypto.createHash('sha1').update(customer.password).digest('hex');
+        const sha1SaltPassword = crypto.createHash('sha1').update(salt + sha1Password).digest('hex');
+        customer.password = crypto.createHash('sha1').update(salt + sha1SaltPassword).digest('hex');
       }
     }
   }
 });
 
-// Instance method to check password
+// Instance method to check password using OpenCart's format
 Customer.prototype.comparePassword = async function(candidatePassword) {
-  // Use bcrypt to compare password since we're hashing with bcrypt in hooks
-  return await bcrypt.compare(candidatePassword, this.password);
+  // Use OpenCart's password validation: SHA1(CONCAT(salt, SHA1(CONCAT(salt, SHA1('password')))))
+  const sha1Password = crypto.createHash('sha1').update(candidatePassword).digest('hex');
+  const sha1SaltPassword = crypto.createHash('sha1').update(this.salt + sha1Password).digest('hex');
+  const hashedPassword = crypto.createHash('sha1').update(this.salt + sha1SaltPassword).digest('hex');
+  
+  return hashedPassword === this.password;
 };
 
 module.exports = Customer;

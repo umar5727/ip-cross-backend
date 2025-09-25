@@ -25,6 +25,9 @@ const cartRoutes = require('./src/routes/cart.routes');
 const checkoutRoutes = require('./src/routes/checkout.routes');
 const ticketRoutes = require('./src/routes/ticket.routes');
 const adminRoutes = require('./src/routes/admin.routes');
+const wishlistRoutes = require('./src/routes/wishlist.routes');
+const clickpostRoutes = require('./src/routes/clickpost.routes');
+
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -36,6 +39,8 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/delivery', clickpostRoutes);
 
 // Root route
 app.get('/', (req, res) => {

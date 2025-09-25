@@ -21,6 +21,10 @@ const Cart = require('./cart/cart.model');
 const Ticket = require('./ticket/ticket.model');
 const TicketReply = require('./ticket/ticket_reply.model');
 
+// ClickPost models
+const ClickPostOrder = require('./clickpost/clickpost_order.model');
+const Vendor = require('./clickpost/vendor.model');
+
 // Define relationships
 // Many-to-many relationship between Product and Category
 Product.belongsToMany(Category, { 
@@ -100,5 +104,7 @@ module.exports = {
   ProductVariant,
   Cart,
   Ticket,
-  TicketReply
+  TicketReply,
+  ClickPostOrder,
+  Vendor
 };

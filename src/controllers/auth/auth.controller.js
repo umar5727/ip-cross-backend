@@ -73,7 +73,12 @@ exports.login = async (req, res) => {
     }
 
     // Check if customer exists
-    const customer = await Customer.findOne({ where: { email } });
+    const customer = await Customer.findOne({ 
+      where: { 
+        email: email.toLowerCase().trim() 
+      } 
+    });
+    
     if (!customer) {
       return res.status(401).json({
         success: false,
@@ -82,13 +87,8 @@ exports.login = async (req, res) => {
     }
 
     // Check if password is correct
-    console.log('Attempting password validation');
-    console.log('Stored password hash:', customer.password);
-    console.log('Input password:', password);
-    
     try {
       const isPasswordValid = await customer.comparePassword(password);
-      console.log('Password validation result:', isPasswordValid);
       
       if (!isPasswordValid) {
         return res.status(401).json({

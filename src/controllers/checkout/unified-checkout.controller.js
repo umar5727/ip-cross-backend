@@ -4,6 +4,8 @@
  */
 
 const db = require('../../../config/database');
+// Create a connection variable that references db.connection for backward compatibility
+const connection = db.connection;
 const redis = require('../../../config/redis');
 const { validationResult } = require('express-validator');
 
@@ -276,12 +278,6 @@ async function validateCartItems(connection, items) {
         };
       }
       
-      // Get product options if any
-      if (item.option && item.option.length > 0) {
-        const options = await getProductOptions(connection, item.product_id, item.option);
-        item.options = options;
-      }
-      
       // Add product data to validated items
       validatedItems.push({
         ...item,
@@ -301,41 +297,7 @@ async function validateCartItems(connection, items) {
   }
 }
 
-/**
- * Get product options
- * @param {Object} connection - Database connection
- * @param {number} productId - Product ID
- * @param {Array} options - Selected options
- * @returns {Array} Product options
- */
-async function getProductOptions(connection, productId, options) {
-  const productOptions = [];
-  
-  for (const option of options) {
-    const [optionData] = await connection.query(
-      `SELECT * FROM product_option_value pov
-       JOIN option_value ov ON pov.option_value_id = ov.option_value_id
-       JOIN \`option\` o ON ov.option_id = o.option_id
-       WHERE pov.product_id = ? AND pov.product_option_value_id = ?`,
-      [productId, option.product_option_value_id]
-    );
-    
-    if (optionData.length) {
-      productOptions.push({
-        product_option_id: optionData[0].product_option_id,
-        product_option_value_id: optionData[0].product_option_value_id,
-        option_id: optionData[0].option_id,
-        option_value_id: optionData[0].option_value_id,
-        name: optionData[0].name,
-        value: optionData[0].value,
-        price: optionData[0].price,
-        price_prefix: optionData[0].price_prefix
-      });
-    }
-  }
-  
-  return productOptions;
-}
+
 
 /**
  * Group products by vendor
@@ -373,17 +335,6 @@ function calculateOrderTotals(items, shippingMethod = null) {
     const itemPrice = parseFloat(item.product_data.price);
     const quantity = parseInt(item.quantity);
     subtotal += itemPrice * quantity;
-    
-    // Add option prices if any
-    if (item.options && item.options.length > 0) {
-      for (const option of item.options) {
-        if (option.price_prefix === '+') {
-          subtotal += parseFloat(option.price);
-        } else if (option.price_prefix === '-') {
-          subtotal -= parseFloat(option.price);
-        }
-      }
-    }
   }
   
   totals.push({
@@ -723,31 +674,6 @@ async function createOrder(connection, orderData) {
         0 // Tax will be calculated separately
       ]
     );
-    
-    // Insert order options if any
-    if (item.options && item.options.length > 0) {
-      for (const option of item.options) {
-        await connection.query(
-          `INSERT INTO order_option (
-            order_id, 
-            order_product_id, 
-            product_option_id, 
-            product_option_value_id, 
-            name, 
-            value, 
-            type
-          ) VALUES (?, LAST_INSERT_ID(), ?, ?, ?, ?, ?)`,
-          [
-            orderId,
-            option.product_option_id,
-            option.product_option_value_id,
-            option.name,
-            option.value,
-            'select' // Default type
-          ]
-        );
-      }
-    }
   }
   
   // Insert order totals with detailed breakdown

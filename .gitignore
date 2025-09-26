@@ -33,3 +33,5 @@ jest.config.js
 opencart files/
 postman/
 uploads/
+
+catalog/

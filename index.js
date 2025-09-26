@@ -41,6 +41,7 @@ const referralRoutes = require('./src/routes/referral/referral.routes');
 const rewardRoutes = require('./src/routes/reward.routes');
 const clickpostRoutes = require('./src/routes/clickpost.routes');
 
+const allCategoriesRoutes = require('./src/routes/all_categories.routes');
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);

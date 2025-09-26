@@ -35,3 +35,6 @@ postman/
 uploads/
 
 catalog/
+test-product-search.js
+opencart-tables.sql
+related-to-product.json

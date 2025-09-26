@@ -234,14 +234,14 @@ exports.getAllProducts = [
           },
           {
             model: ProductDescription,
-            as: 'product_descriptions',
+            as: 'product_description',
             attributes: ['name', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
             where: { language_id: languageId },
             required: false
           },
           {
             model: ProductImage,
-            as: 'product_images',
+            as: 'ProductImages',
             attributes: ['image', 'sort_order'],
             required: false
           }
@@ -275,7 +275,7 @@ exports.getAllProducts = [
         const productDescriptionInclude = queryOptions.include.find(inc => inc.model === ProductDescription);
         
         // Ensure we're using the correct alias for ProductDescription
-        const correctInclude = productDescriptionInclude || queryOptions.include.find(inc => inc.as === 'product_descriptions');
+        const correctInclude = productDescriptionInclude || queryOptions.include.find(inc => inc.as === 'product_description');
         
         if (correctInclude) {
           // Use full wildcard search for more comprehensive results
@@ -312,11 +312,11 @@ exports.getAllProducts = [
           image: productJson.image ? resizeImage(productJson.image, 200, 200, true) : null,
           mrp: productJson.price, // Original price is MRP
           selling_price: specialPrice, // Special price is selling price
-          name: product.product_descriptions && product.product_descriptions.length > 0 
-            ? product.product_descriptions[0].name 
+          name: product.product_description && product.product_description.length > 0 
+            ? product.product_description[0].name 
             : null,
-          description: product.product_descriptions && product.product_descriptions.length > 0 
-            ? product.product_descriptions[0].description 
+          description: product.product_description && product.product_description.length > 0 
+            ? product.product_description[0].description 
             : null
           // Removed additional images array to optimize response size
         };
@@ -401,14 +401,14 @@ exports.loadMoreProducts = [
           },
           {
             model: ProductDescription,
-            as: 'product_descriptions',
+            as: 'product_description',
             attributes: ['name', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
             where: { language_id: languageId },
             required: false
           },
           {
             model: ProductImage,
-            as: 'product_images',
+            as: 'ProductImages',
             attributes: ['image', 'sort_order'],
             required: false
           }
@@ -469,7 +469,7 @@ exports.loadMoreProducts = [
           description: product.product_descriptions && product.product_descriptions.length > 0 
             ? product.product_descriptions[0].description 
             : null,
-          images: product.product_images ? product.product_images.map(img => ({
+          images: product.ProductImages ? product.ProductImages.map(img => ({
             image: img.image ? resizeImage(img.image, 150, 150, true) : null,
             sort_order: img.sort_order || 0
           })) : []
@@ -531,14 +531,14 @@ exports.getProductById = [
           },
           {
             model: ProductDescription,
-            as: 'product_descriptions',
+            as: 'product_description',
             attributes: ['name', 'description', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
             where: { language_id: languageId },
             required: false
           },
           {
             model: ProductImage,
-            as: 'product_images',
+            as: 'ProductImages',
             attributes: ['image', 'sort_order'],
             required: false
           },
@@ -611,21 +611,21 @@ exports.getProductById = [
         product_id: productJson.product_id,
         model: productJson.model,
         sku: productJson.sku,
-        name: product.product_descriptions && product.product_descriptions.length > 0 
-          ? product.product_descriptions[0].name 
+        name: product.product_description && product.product_description.length > 0 
+          ? product.product_description[0].name 
           : null,
-        description: product.product_descriptions && product.product_descriptions.length > 0 
-          ? sanitizeDescription(product.product_descriptions[0].description)
+description: product.product_description && product.product_description.length > 0 
+          ? sanitizeDescription(product.product_description[0].description)
           : null,
         meta: {
-          title: product.product_descriptions && product.product_descriptions.length > 0 
-            ? product.product_descriptions[0].meta_title 
+          title: product.product_description && product.product_description.length > 0 
+            ? product.product_description[0].meta_title 
             : null,
-          description: product.product_descriptions && product.product_descriptions.length > 0 
-            ? product.product_descriptions[0].meta_description 
+          description: product.product_description && product.product_description.length > 0 
+            ? product.product_description[0].meta_description 
             : null,
-          keywords: product.product_descriptions && product.product_descriptions.length > 0 
-            ? product.product_descriptions[0].meta_keyword 
+          keywords: product.product_description && product.product_description.length > 0 
+            ? product.product_description[0].meta_keyword 
             : null
         },
         pricing: {
@@ -633,7 +633,7 @@ exports.getProductById = [
           selling_price: specialPrice || productJson.price,
           discount_percentage: specialPrice ? Math.round((productJson.price - specialPrice) / productJson.price * 100) : 0
         },
-        images: product.product_images ? product.product_images.map(img => ({
+        images: product.ProductImages ? product.ProductImages.map(img => ({
           image: img.image ? resizeImage(img.image, 150, 150,true) : null,
           sort_order: img.sort_order || 0
         })) : [],

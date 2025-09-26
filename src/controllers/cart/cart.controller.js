@@ -126,7 +126,7 @@ exports.getCart = [
         return {
           cart_id: cartItem.cart_id,
           product_id: product.product_id,
-          name: product.product_descriptions ? product.product_descriptions.name : product.model || `Product ${product.product_id}`,
+          name: product.product_description ? product.product_description.name : product.model || `Product ${product.product_id}`,
           model: product.model,
           image: product.image,
           quantity: cartItem.quantity,

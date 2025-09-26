@@ -21,6 +21,7 @@ const Cart = require('./cart/cart.model');
 const Ticket = require('./ticket/ticket.model');
 const TicketReply = require('./ticket/ticket_reply.model');
 const { Referral, Offer, ReferralOrder } = require('./referral');
+const { Download, DownloadDescription, ProductToDownload } = require('./download');
 
 // Define relationships
 // Many-to-many relationship between Product and Category

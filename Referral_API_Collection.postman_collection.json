@@ -1,8 +1,8 @@
 {
   "info": {
     "name": "IP Cross Backend - Referral API",
-    "description": "Complete collection of referral system API endpoints for IP Cross Backend",
-    "version": "1.0.0",
+    "description": "Complete collection of referral system API endpoints for IP Cross Backend with comprehensive test coverage",
+    "version": "2.0.0",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -25,8 +25,34 @@
           "}",
           "",
           "if (!pm.environment.get('testCustomerEmail')) {",
-          "    pm.environment.set('testCustomerEmail', 'test@example.com');",
-          "}"
+          "    pm.environment.set('testCustomerEmail', 'testuser@example.com');",
+          "}",
+          "",
+          "// Log request details for debugging",
+          "console.log('Request URL:', pm.request.url.toString());",
+          "console.log('Request Method:', pm.request.method);",
+          "console.log('Customer ID:', pm.environment.get('testCustomerId'));"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test to ensure response time is reasonable",
+          "pm.test('Response time is less than 2000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});",
+          "",
+          "// Global test to ensure content type is JSON",
+          "pm.test('Content-Type is application/json', function () {",
+          "    pm.expect(pm.response.headers.get('Content-Type')).to.include('application/json');",
+          "});",
+          "",
+          "// Log response for debugging",
+          "console.log('Response Status:', pm.response.status);",
+          "console.log('Response Body:', pm.response.text());"
         ]
       }
     }
@@ -44,12 +70,17 @@
     },
     {
       "key": "testCustomerEmail",
-      "value": "test@example.com",
+      "value": "testuser@example.com",
       "type": "string"
     },
     {
       "key": "referralCode",
       "value": "REF87814688626815",
+      "type": "string"
+    },
+    {
+      "key": "referralId",
+      "value": "1",
       "type": "string"
     }
   ],
@@ -146,16 +177,27 @@
               "",
               "pm.test('Response contains referral data', function () {",
               "    const jsonData = pm.response.json();",
-              "    // Check for both possible response formats",
+              "    // Check for both possible response formats (id or referral_id)",
               "    const referralId = jsonData.data.referral_id || jsonData.data.id;",
               "    pm.expect(referralId).to.exist;",
+              "    pm.expect(referralId).to.be.a('number');",
+              "    pm.expect(referralId).to.be.greaterThan(0);",
               "    pm.expect(jsonData.data).to.have.property('refer_code');",
               "    pm.expect(jsonData.data).to.have.property('refer_link');",
               "    pm.expect(jsonData.data).to.have.property('status');",
               "    ",
-              "    // Save referral code for other requests",
+              "    // Save referral code and ID for other requests",
               "    pm.environment.set('referralCode', jsonData.data.refer_code);",
               "    pm.environment.set('referralId', referralId);",
+              "});",
+              "",
+              "pm.test('Referral data has valid format', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData.data.refer_code).to.be.a('string');",
+              "    pm.expect(jsonData.data.refer_code).to.have.length.greaterThan(0);",
+              "    pm.expect(jsonData.data.refer_link).to.be.a('string');",
+              "    pm.expect(jsonData.data.refer_link).to.include('http');",
+              "    pm.expect(jsonData.data.status).to.be.a('number');",
               "});"
             ]
           }
@@ -203,25 +245,35 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Response has success field', function () {",
-              "    const jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property('success');",
-              "    pm.expect(jsonData.success).to.be.true;",
-              "});",
-              "",
-              "pm.test('Response contains referrals and statistics', function () {",
-              "    const jsonData = pm.response.json();",
-              "    pm.expect(jsonData.data).to.have.property('referrals');",
-              "    pm.expect(jsonData.data).to.have.property('statistics');",
-              "    pm.expect(jsonData.data.statistics).to.have.property('totalEarnings');",
-              "    pm.expect(jsonData.data.statistics).to.have.property('totalOrders');",
-              "    pm.expect(jsonData.data.statistics).to.have.property('totalVisits');",
-              "    pm.expect(jsonData.data.statistics).to.have.property('totalReferrals');",
-              "});"
+                "pm.test('Status code is 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "",
+                "pm.test('Response has success field', function () {",
+                "    const jsonData = pm.response.json();",
+                "    pm.expect(jsonData).to.have.property('success');",
+                "    pm.expect(jsonData.success).to.be.true;",
+                "});",
+                "",
+                "pm.test('Response contains referrals and statistics', function () {",
+                "    const jsonData = pm.response.json();",
+                "    pm.expect(jsonData.data).to.have.property('referrals');",
+                "    pm.expect(jsonData.data).to.have.property('statistics');",
+                "    pm.expect(jsonData.data.referrals).to.be.an('array');",
+                "    pm.expect(jsonData.data.statistics).to.have.property('totalEarnings');",
+                "    pm.expect(jsonData.data.statistics).to.have.property('totalVisits');",
+                "    pm.expect(jsonData.data.statistics).to.have.property('totalReferrals');",
+                "    pm.expect(jsonData.data.statistics).to.have.property('totalOrders');",
+                "});",
+                "",
+                "pm.test('Statistics have valid values', function () {",
+                "    const jsonData = pm.response.json();",
+                "    pm.expect(jsonData.data.statistics.totalEarnings).to.be.a('number');",
+                "    pm.expect(jsonData.data.statistics.totalVisits).to.be.a('number');",
+                "    pm.expect(jsonData.data.statistics.totalReferrals).to.be.a('number');",
+                "    pm.expect(jsonData.data.statistics.totalOrders).to.be.a('number');",
+                "    pm.expect(jsonData.data.statistics.totalReferrals).to.equal(jsonData.data.referrals.length);",
+                "});"
             ]
           }
         }
@@ -278,10 +330,26 @@
               "    pm.expect(jsonData.success).to.be.true;",
               "});",
               "",
-              "pm.test('Response contains data array', function () {",
+              "pm.test('Response contains referred buyers data', function () {",
               "    const jsonData = pm.response.json();",
               "    pm.expect(jsonData).to.have.property('data');",
               "    pm.expect(jsonData.data).to.be.an('array');",
+              "    // Note: Array might be empty if no referred buyers exist",
+              "});",
+              "",
+              "pm.test('If buyers exist, they have valid structure', function () {",
+              "    const jsonData = pm.response.json();",
+              "    if (jsonData.data && jsonData.data.length > 0) {",
+              "        jsonData.data.forEach(buyer => {",
+              "            pm.expect(buyer).to.have.property('customer_id');",
+              "            pm.expect(buyer).to.have.property('name');",
+              "            pm.expect(buyer).to.have.property('email');",
+              "            pm.expect(buyer.customer_id).to.be.a('number');",
+              "            pm.expect(buyer.name).to.be.a('string');",
+              "            pm.expect(buyer.email).to.be.a('string');",
+              "            pm.expect(buyer.email).to.include('@');",
+              "        });",
+              "    }",
               "});"
             ]
           }
@@ -341,8 +409,19 @@
               "",
               "pm.test('Response contains updated referral data', function () {",
               "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('data');",
               "    pm.expect(jsonData.data).to.have.property('referral_id');",
               "    pm.expect(jsonData.data).to.have.property('status');",
+              "    pm.expect(jsonData.data.referral_id).to.be.a('number');",
+              "    pm.expect(jsonData.data.referral_id).to.be.greaterThan(0);",
+              "    pm.expect(jsonData.data.status).to.be.a('number');",
+              "});",
+              "",
+              "pm.test('Status update message is present', function () {",
+              "    const jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('message');",
+              "    pm.expect(jsonData.message).to.be.a('string');",
+              "    pm.expect(jsonData.message).to.include('updated');",
               "});"
             ]
           }
@@ -456,34 +535,45 @@
     {
       "name": "Validate Referral Code",
       "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Status code is 200', function () {",
-              "    pm.response.to.have.status(200);",
-              "});",
-              "",
-              "pm.test('Response has success field', function () {",
-              "    const jsonData = pm.response.json();",
-              "    pm.expect(jsonData).to.have.property('success');",
-              "    pm.expect(jsonData.success).to.be.true;",
-              "});",
-              "",
-              "pm.test('Response contains referral validation data', function () {",
-              "    const jsonData = pm.response.json();",
-              "    pm.expect(jsonData.data).to.have.property('referral_id');",
-              "    pm.expect(jsonData.data).to.have.property('refer_code');",
-              "    pm.expect(jsonData.data).to.have.property('referrer');",
-              "    pm.expect(jsonData.data.referrer).to.have.property('customer_id');",
-              "    pm.expect(jsonData.data.referrer).to.have.property('name');",
-              "    pm.expect(jsonData.data.referrer).to.have.property('email');",
-              "});"
-            ]
+          {
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "pm.test('Status code is 200', function () {",
+                "    pm.response.to.have.status(200);",
+                "});",
+                "",
+                "pm.test('Response has success field', function () {",
+                "    const jsonData = pm.response.json();",
+                "    pm.expect(jsonData).to.have.property('success');",
+                "    pm.expect(jsonData.success).to.be.true;",
+                "});",
+                "",
+                "pm.test('Response contains referral validation data', function () {",
+                "    const jsonData = pm.response.json();",
+                "    pm.expect(jsonData.data).to.have.property('referral_id');",
+                "    pm.expect(jsonData.data).to.have.property('refer_code');",
+                "    pm.expect(jsonData.data).to.have.property('referrer');",
+                "    pm.expect(jsonData.data.referrer).to.have.property('customer_id');",
+                "    pm.expect(jsonData.data.referrer).to.have.property('name');",
+                "    pm.expect(jsonData.data.referrer).to.have.property('email');",
+                "});",
+                "",
+                "pm.test('Referral data has valid values', function () {",
+                "    const jsonData = pm.response.json();",
+                "    pm.expect(jsonData.data.referral_id).to.be.a('number');",
+                "    pm.expect(jsonData.data.referral_id).to.be.greaterThan(0);",
+                "    pm.expect(jsonData.data.refer_code).to.be.a('string');",
+                "    pm.expect(jsonData.data.refer_code).to.have.length.greaterThan(0);",
+                "    pm.expect(jsonData.data.referrer.customer_id).to.be.a('number');",
+                "    pm.expect(jsonData.data.referrer.name).to.be.a('string');",
+                "    pm.expect(jsonData.data.referrer.email).to.include('@');",
+                "});"
+              ]
+            }
           }
-        }
-      ],
+        ],
       "request": {
         "method": "GET",
         "header": [

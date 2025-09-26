@@ -113,12 +113,8 @@ class CacheService {
         const productJson = product.toJSON();
         return {
           ...productJson,
-          name: product.product_descriptions && product.product_descriptions.length > 0 
-            ? product.product_descriptions[0].name 
-            : null,
-          description: product.product_descriptions && product.product_descriptions.length > 0 
-            ? product.product_descriptions[0].description 
-            : null
+          name: product.product_description ? product.product_description.name : product.model,
+          description: product.product_description ? product.product_description.description : ''
         };
       });
 

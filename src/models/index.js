@@ -48,7 +48,7 @@ ProductVariant.belongsTo(Product, { foreignKey: 'product_id' });
 Category.hasMany(CategoryDescription, { foreignKey: 'category_id' });
 CategoryDescription.belongsTo(Category, { foreignKey: 'category_id' });
 
-// Order relationships
+Product.hasMany(ProductDescription, { foreignKey: 'product_id', as: 'ProductDescriptions' });
 Customer.hasMany(Order, { foreignKey: 'customer_id' });
 Order.belongsTo(Customer, { foreignKey: 'customer_id' });
 

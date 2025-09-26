@@ -10,6 +10,9 @@ const db = require('./config/database');
 // Import Redis client
 const { redisClient } = require('./config/redis');
 
+// Import scheduler service
+const SchedulerService = require('./src/services/scheduler.service');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -47,6 +50,13 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
+  
+  // Initialize background cache scheduler when Redis is connected
+  redisClient.on('connect', () => {
+    console.log('Connected to Redis, starting background cache scheduler');
+    const scheduler = new SchedulerService();
+    scheduler.startCacheRefreshJob(30 * 60 * 1000); // Refresh every 30 minutes
+  });
   
   // Test database connection
   try {

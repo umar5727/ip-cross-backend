@@ -1,7 +1,6 @@
 const { Op } = require('sequelize');
 const { Product, Cart, ProductDescription, ProductDiscount } = require('../../models');
 const sequelize = require('../../../config/database');
-const cache = require('../../middleware/cache');
 
 // Get cart contents
 exports.getCart = [

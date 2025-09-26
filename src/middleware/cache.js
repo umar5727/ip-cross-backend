@@ -2,10 +2,10 @@ const { redisClient } = require('../../config/redis');
 
 /**
  * Cache middleware with error handling
- * @param {number} duration - Cache duration in seconds
+ * @param {number} duration - Cache duration in seconds (default: 3600 seconds = 1 hour)
  * @returns {Function} Express middleware function
  */
-const cache = (duration) => {
+const cache = (duration = 3600) => {
   return (req, res, next) => {
     try {
       // Skip cache if Redis is not connected
@@ -35,6 +35,11 @@ const cache = (duration) => {
             if (res.statusCode === 200) {
               try {
                 redisClient.setex(key, duration, JSON.stringify(body));
+                
+                // Track this search query if it's a product search
+                if (req.originalUrl.includes('/api/products') && req.query.search) {
+                  trackSearchQuery(req.query.search);
+                }
               } catch (error) {
                 console.error('Redis cache set error:', error);
               }
@@ -51,4 +56,25 @@ const cache = (duration) => {
   };
 };
 
+/**
+ * Track popular search queries for background caching
+ * @param {string} query - The search query to track
+ */
+function trackSearchQuery(query) {
+  if (!query || !redisClient || !redisClient.connected) return;
+  
+  const key = 'popular_searches';
+  const normalizedQuery = query.trim().toLowerCase();
+  
+  // Increment the score for this search term
+  redisClient.zincrby(key, 1, normalizedQuery, (err) => {
+    if (err) {
+      console.error('Error tracking search query:', err);
+    }
+  });
+}
+
+// Export both the cache middleware function and the tracking function
 module.exports = cache;
+// Also export the object with both functions for services that need them
+module.exports.trackSearchQuery = trackSearchQuery;

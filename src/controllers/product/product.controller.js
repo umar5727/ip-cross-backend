@@ -175,7 +175,7 @@ const sanitizeDescription = (htmlContent) => {
 
 // Get all products with pagination and caching
 exports.getAllProducts = [
-  cache(300), // Cache for 5 minutes
+  cache(3600), // Cache for 1 hour
   async (req, res) => {
     try {
       const page = parseInt(req.query.page) || 1;
@@ -278,20 +278,18 @@ exports.getAllProducts = [
         const correctInclude = productDescriptionInclude || queryOptions.include.find(inc => inc.as === 'product_descriptions');
         
         if (correctInclude) {
-          // Optimize search by using LIKE with right-side wildcard only when possible
+          // Use full wildcard search for more comprehensive results
           const searchTerm = searchQuery.trim();
-          const exactMatch = searchTerm;
-          const partialMatch = `${searchTerm}%`; // Right-side wildcard is more efficient
-          const fullMatch = `%${searchTerm}%`;   // Use full wildcard only when necessary
+          const fullMatch = `%${searchTerm}%`;
           
           correctInclude.where = {
             ...correctInclude.where || {},
             [Op.or]: [
-              { name: { [Op.like]: partialMatch } },
-              { meta_title: { [Op.like]: partialMatch } },
-              { tag: { [Op.like]: partialMatch } },
-              { meta_keyword: { [Op.like]: partialMatch } },
-              { meta_description: { [Op.like]: partialMatch } }
+              { name: { [Op.like]: fullMatch } },
+              { meta_title: { [Op.like]: fullMatch } },
+              { tag: { [Op.like]: fullMatch } },
+              { meta_keyword: { [Op.like]: fullMatch } },
+              { meta_description: { [Op.like]: fullMatch } }
             ]
           };
           

@@ -10,10 +10,17 @@ const db = require('./config/database');
 // Import Redis client
 const { redisClient } = require('./config/redis');
 
+// Import scheduler service
+const SchedulerService = require('./src/services/scheduler.service');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Image resizing middleware
+const imageMiddleware = require('./src/middleware/image.middleware');
+app.use('/image', imageMiddleware);
 
 // Routes
 const customerRoutes = require('./src/routes/customer.routes');
@@ -25,6 +32,7 @@ const cartRoutes = require('./src/routes/cart.routes');
 const checkoutRoutes = require('./src/routes/checkout.routes');
 const ticketRoutes = require('./src/routes/ticket.routes');
 const adminRoutes = require('./src/routes/admin.routes');
+const allCategoriesRoutes = require('./src/routes/all_categories.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -36,6 +44,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/all-categories', allCategoriesRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -45,7 +54,14 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
-  
+
+  // Initialize background cache scheduler when Redis is connected
+  redisClient.on('connect', () => {
+    console.log('Connected to Redis, starting background cache scheduler');
+    const scheduler = new SchedulerService();
+    scheduler.startCacheRefreshJob(30 * 60 * 1000); // Refresh every 30 minutes
+  });
+
   // Test database connection
   try {
     await db.authenticate();
@@ -53,7 +69,7 @@ app.listen(PORT, async () => {
   } catch (error) {
     console.error('Unable to connect to the database:', error);
   }
-  
+
   // Test Redis connection
   try {
     // Redis v3.1.2 automatically connects, no need to call connect()

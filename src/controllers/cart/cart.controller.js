@@ -1,7 +1,6 @@
 const { Op } = require('sequelize');
 const { Product, Cart, ProductDescription, ProductDiscount } = require('../../models');
 const sequelize = require('../../../config/database');
-const cache = require('../../middleware/cache');
 
 // Get cart contents
 exports.getCart = [
@@ -165,7 +164,7 @@ exports.getCart = [
 // Add product to cart
 exports.addToCart = async (req, res) => {
   try {
-    const { product_id, quantity = 1, options = {}, session_id } = req.body;
+    const { product_id, quantity = 1, session_id } = req.body;
     
     // Get customer ID if user is logged in
     const customerId = req.user ? req.user.customer_id : 0;
@@ -197,8 +196,7 @@ exports.addToCart = async (req, res) => {
         [Op.or]: [
           { session_id: sessionId, customer_id: 0 },
           { customer_id: customerId }
-        ],
-        option: JSON.stringify(options)
+        ]
       }
     });
 
@@ -214,14 +212,14 @@ exports.addToCart = async (req, res) => {
         session_id: sessionId,
         product_id,
         quantity,
-        option: JSON.stringify(options),
         date_added: new Date()
       });
     }
 
     return res.json({
       success: true,
-      message: 'Product added to cart'
+      message: 'Product added to cart',
+      session_id: sessionId
     });
   } catch (error) {
     console.error('Error adding to cart:', error);

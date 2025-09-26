@@ -92,6 +92,8 @@ TicketReply.belongsTo(Ticket, { foreignKey: 'ticket_id' });
 Customer.hasMany(TicketReply, { foreignKey: 'customer_id' });
 TicketReply.belongsTo(Customer, { foreignKey: 'customer_id' });
 
+// Referral relationships are defined in src/models/referral/index.js
+
 module.exports = {
   Customer,
   Product,

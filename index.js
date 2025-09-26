@@ -21,7 +21,6 @@ app.use(express.urlencoded({ extended: true }));
 // Image resizing middleware
 const imageMiddleware = require('./src/middleware/image.middleware');
 app.use('/image', imageMiddleware);
-
 // Routes
 const customerRoutes = require('./src/routes/customer.routes');
 const productRoutes = require('./src/routes/product.routes');

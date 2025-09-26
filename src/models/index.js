@@ -48,7 +48,7 @@ ProductSpecial.belongsTo(Product, { foreignKey: 'product_id' });
 Product.hasMany(ProductImage, { foreignKey: 'product_id', as: 'ProductImages' });
 ProductImage.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
 
-Product.hasMany(ProductDescription, { foreignKey: 'product_id', as: 'ProductDescriptions' });
+Product.hasMany(ProductDescription, { foreignKey: 'product_id', as: 'product_description' });
 ProductDescription.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
 
 Product.hasMany(ProductVariant, { foreignKey: 'product_id' });

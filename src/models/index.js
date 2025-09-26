@@ -23,6 +23,10 @@ const TicketReply = require('./ticket/ticket_reply.model');
 const { Referral, Offer, ReferralOrder } = require('./referral');
 const { Download, DownloadDescription, ProductToDownload } = require('./download');
 
+// ClickPost models
+const ClickPostOrder = require('./clickpost/clickpost_order.model');
+const Vendor = require('./clickpost/vendor.model');
+
 // Define relationships
 // Many-to-many relationship between Product and Category
 Product.belongsToMany(Category, { 
@@ -108,5 +112,7 @@ module.exports = {
   TicketReply,
   Referral,
   Offer,
-  ReferralOrder
+  ReferralOrder,
+  ClickPostOrder,
+  Vendor
 };

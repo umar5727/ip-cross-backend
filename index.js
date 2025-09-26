@@ -25,9 +25,6 @@ const cartRoutes = require('./src/routes/cart.routes');
 const checkoutRoutes = require('./src/routes/checkout.routes');
 const ticketRoutes = require('./src/routes/ticket.routes');
 const adminRoutes = require('./src/routes/admin.routes');
-const referralRoutes = require('./src/routes/referral/referral.routes');
-const downloadRoutes = require('./src/routes/download.routes');
-const rewardRoutes = require('./src/routes/reward.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -39,9 +36,6 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/referral', referralRoutes);
-app.use('/api/downloads', downloadRoutes);
-app.use('/api/rewards', rewardRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -33,7 +33,6 @@ const checkoutRoutes = require('./src/routes/checkout.routes');
 const ticketRoutes = require('./src/routes/ticket.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const allCategoriesRoutes = require('./src/routes/all_categories.routes');
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);

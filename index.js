@@ -42,6 +42,7 @@ const rewardRoutes = require('./src/routes/reward.routes');
 const clickpostRoutes = require('./src/routes/clickpost.routes');
 const deliveryRoutes = require('./src/routes/delivery.routes');
 const returnRoutes = require('./src/routes/return.routes');
+const walletRoutes = require('./src/routes/wallet.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -63,6 +64,7 @@ app.use('/api/rewards', rewardRoutes);
 app.use('/api/clickpost', clickpostRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/returns', returnRoutes);
+app.use('/api/wallet', walletRoutes);
 
 // Root route
 app.get('/', (req, res) => {

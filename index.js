@@ -40,8 +40,9 @@ const wishlistRoutes = require('./src/routes/wishlist.routes');
 const referralRoutes = require('./src/routes/referral/referral.routes');
 const rewardRoutes = require('./src/routes/reward.routes');
 const clickpostRoutes = require('./src/routes/clickpost.routes');
+const deliveryRoutes = require('./src/routes/delivery.routes');
+const returnRoutes = require('./src/routes/return.routes');
 
-const allCategoriesRoutes = require('./src/routes/all_categories.routes');
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
@@ -60,6 +61,8 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/rewards', rewardRoutes);
 app.use('/api/clickpost', clickpostRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/returns', returnRoutes);
 
 // Root route
 app.get('/', (req, res) => {

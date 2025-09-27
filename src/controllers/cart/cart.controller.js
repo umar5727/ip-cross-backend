@@ -3,163 +3,161 @@ const { Product, Cart, ProductDescription, ProductDiscount } = require('../../mo
 const sequelize = require('../../../config/database');
 
 // Get cart contents
-exports.getCart = [
-  async (req, res) => {
-    try {
-      // Use session ID from query params
-      const sessionId = req.query.session_id;
-      
-      // Extract customer ID from authenticated user
-      const customerId = req.user ? req.user.customer_id : 0;
-      const languageId = parseInt(req.query.language_id) || 1;
-      
-      console.log('Getting cart with sessionId:', sessionId);
-      console.log('Customer ID:', customerId);
+exports.getCart = async (req, res) => {
+  try {
+    // Use session ID from query params
+    const sessionId = req.query.session_id;
+    
+    // Extract customer ID from authenticated user
+    const customerId = req.user ? req.user.customer_id : 0;
+    const languageId = parseInt(req.query.language_id) || 1;
+    
+    console.log('Getting cart with sessionId:', sessionId);
+    console.log('Customer ID:', customerId);
 
-      // Build where clause based on available parameters
-      let whereClause = {};
-      
-      if (sessionId) {
-        whereClause = { session_id: sessionId };
-      } else if (customerId > 0) {
-        whereClause = { customer_id: customerId };
-      } else {
-        return res.json({
-          success: true,
-          data: {
-            products: [],
-            total: 0,
-            count: 0
-          }
-        });
-      }
-      
-      console.log('Where clause for cart query:', JSON.stringify(whereClause));
-      
-      // Get cart items using Sequelize
-      const cartItems = await Cart.findAll({ where: whereClause });
-      
-      console.log('Cart items found with Sequelize:', cartItems.length);
-
-      if (!cartItems.length) {
-        return res.json({
-          success: true,
-          data: {
-            products: [],
-            total: 0,
-            total_items: 0
-          }
-        });
-      }
-
-      // Get product details for cart items
-      const productIds = cartItems.map(item => item.product_id);
-      console.log('Product IDs to fetch:', productIds);
-      
-      const products = await Product.findAll({
-        where: {
-          product_id: { [Op.in]: productIds }
-          // Removed status filter to show all products regardless of status
-        },
-        include: [
-          {
-            model: ProductDescription,
-            where: { language_id: languageId },
-            attributes: ['name', 'description']
-          },
-          {
-            model: sequelize.models.product_special,
-            required: false,
-            where: {
-              customer_group_id: 1, // Default customer group
-              date_start: { [Op.lte]: new Date() },
-              date_end: { 
-                [Op.or]: [
-                  { [Op.gte]: new Date() },
-                  { [Op.eq]: '0000-00-00' }
-                ]
-              }
-            },
-            order: [['priority', 'ASC']],
-            limit: 1
-          }
-        ]
-      });
-      
-      console.log('Products found:', products.length, 'out of', productIds.length, 'requested');
-
-      // Map products to cart items with quantity
-      const cartProducts = cartItems.map(cartItem => {
-        const product = products.find(p => p.product_id === cartItem.product_id);
-        if (!product) return null;
-
-        // Get the special price if available
-        const specialPrice = product.product_specials && product.product_specials.length > 0 
-          ? parseFloat(product.product_specials[0].price) 
-          : null;
-        
-        // Check for applicable discount based on quantity
-        let discountPrice = null;
-        if (product.product_discounts && product.product_discounts.length > 0) {
-          // Find discount where cart quantity is between min and max thresholds (inclusive)
-          const applicableDiscount = product.product_discounts.find(discount => {
-            const minQuantity = parseInt(discount.quantity) || 1;
-            const maxQuantity = parseInt(discount.max_quantity) || 999999;
-            return cartItem.quantity >= minQuantity && cartItem.quantity <= maxQuantity;
-          });
-          
-          if (applicableDiscount) {
-            discountPrice = parseFloat(applicableDiscount.price);
-          }
-        }
-        
-        // Apply price hierarchy: discount > special > regular price
-        let finalPrice;
-        if (discountPrice !== null) {
-          finalPrice = discountPrice;
-        } else if (specialPrice !== null) {
-          finalPrice = specialPrice;
-        } else {
-          finalPrice = parseFloat(product.price);
-        }
-
-        return {
-          cart_id: cartItem.cart_id,
-          product_id: product.product_id,
-          name: product.product_descriptions ? product.product_descriptions.name : product.model || `Product ${product.product_id}`,
-          model: product.model,
-          image: product.image,
-          quantity: cartItem.quantity,
-          mrp: parseFloat(product.price),
-          price: finalPrice,
-          total: finalPrice * cartItem.quantity
-        };
-      }).filter(Boolean);
-
-      // Calculate totals
-      const totalItems = cartProducts.reduce((sum, item) => sum + parseInt(item.quantity), 0);
-      const totalPrice = cartProducts.reduce((sum, item) => sum + item.total, 0);
-      const productCount = cartProducts.length;
-
+    // Build where clause based on available parameters
+    let whereClause = {};
+    
+    if (sessionId) {
+      whereClause = { session_id: sessionId };
+    } else if (customerId > 0) {
+      whereClause = { customer_id: customerId };
+    } else {
       return res.json({
         success: true,
         data: {
-          products: cartProducts,
-          total: totalPrice,
-          total_items: totalItems,
-          product_count: productCount
+          products: [],
+          total: 0,
+          count: 0
         }
       });
-    } catch (error) {
-      console.error('Error getting cart:', error);
-      return res.status(500).json({
-        success: false,
-        message: 'Error retrieving cart',
-        error: error.message
+    }
+    
+    console.log('Where clause for cart query:', JSON.stringify(whereClause));
+    
+    // Get cart items using Sequelize
+    const cartItems = await Cart.findAll({ where: whereClause });
+    
+    console.log('Cart items found with Sequelize:', cartItems.length);
+
+    if (!cartItems.length) {
+      return res.json({
+        success: true,
+        data: {
+          products: [],
+          total: 0,
+          total_items: 0
+        }
       });
     }
+
+    // Get product details for cart items
+    const productIds = cartItems.map(item => item.product_id);
+    console.log('Product IDs to fetch:', productIds);
+    
+    const products = await Product.findAll({
+      where: {
+        product_id: { [Op.in]: productIds }
+        // Removed status filter to show all products regardless of status
+      },
+      include: [
+        {
+          model: ProductDescription,
+          where: { language_id: languageId },
+          attributes: ['name', 'description']
+        },
+        {
+          model: sequelize.models.product_special,
+          required: false,
+          where: {
+            customer_group_id: 1, // Default customer group
+            date_start: { [Op.lte]: new Date() },
+            date_end: { 
+              [Op.or]: [
+                { [Op.gte]: new Date() },
+                { [Op.eq]: '0000-00-00' }
+              ]
+            }
+          },
+          order: [['priority', 'ASC']],
+          limit: 1
+        }
+      ]
+    });
+    
+    console.log('Products found:', products.length, 'out of', productIds.length, 'requested');
+
+    // Map products to cart items with quantity
+    const cartProducts = cartItems.map(cartItem => {
+      const product = products.find(p => p.product_id === cartItem.product_id);
+      if (!product) return null;
+
+      // Get the special price if available
+      const specialPrice = product.product_specials && product.product_specials.length > 0 
+        ? parseFloat(product.product_specials[0].price) 
+        : null;
+      
+      // Check for applicable discount based on quantity
+      let discountPrice = null;
+      if (product.product_discounts && product.product_discounts.length > 0) {
+        // Find discount where cart quantity is between min and max thresholds (inclusive)
+        const applicableDiscount = product.product_discounts.find(discount => {
+          const minQuantity = parseInt(discount.quantity) || 1;
+          const maxQuantity = parseInt(discount.max_quantity) || 999999;
+          return cartItem.quantity >= minQuantity && cartItem.quantity <= maxQuantity;
+        });
+        
+        if (applicableDiscount) {
+          discountPrice = parseFloat(applicableDiscount.price);
+        }
+      }
+      
+      // Apply price hierarchy: discount > special > regular price
+      let finalPrice;
+      if (discountPrice !== null) {
+        finalPrice = discountPrice;
+      } else if (specialPrice !== null) {
+        finalPrice = specialPrice;
+      } else {
+        finalPrice = parseFloat(product.price);
+      }
+
+      return {
+        cart_id: cartItem.cart_id,
+        product_id: product.product_id,
+        name: product.product_descriptions ? product.product_descriptions.name : product.model || `Product ${product.product_id}`,
+        model: product.model,
+        image: product.image,
+        quantity: cartItem.quantity,
+        mrp: parseFloat(product.price),
+        price: finalPrice,
+        total: finalPrice * cartItem.quantity
+      };
+    }).filter(Boolean);
+
+    // Calculate totals
+    const totalItems = cartProducts.reduce((sum, item) => sum + parseInt(item.quantity), 0);
+    const totalPrice = cartProducts.reduce((sum, item) => sum + item.total, 0);
+    const productCount = cartProducts.length;
+
+    return res.json({
+      success: true,
+      data: {
+        products: cartProducts,
+        total: totalPrice,
+        total_items: totalItems,
+        product_count: productCount
+      }
+    });
+  } catch (error) {
+    console.error('Error getting cart:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error retrieving cart',
+      error: error.message
+    });
   }
-];
+};
 
 // Add product to cart
 exports.addToCart = async (req, res) => {
@@ -172,15 +170,15 @@ exports.addToCart = async (req, res) => {
     // Use session_id from request body if provided, otherwise generate a new one
     let sessionId = session_id;
     if (!sessionId) {
-      // Generate a clean session ID (timestamp only)
-      sessionId = Date.now().toString();
+      // Generate a clean session ID (timestamp + random string)
+      sessionId = Date.now().toString() + Math.random().toString(36).substring(2, 15);
     }
     
     console.log('Adding to cart - Session ID:', sessionId);
     console.log('Adding to cart - Customer ID:', customerId);
     console.log('Adding to cart - Product ID:', product_id);
     
-    // Validate product exists
+    // Validate product exists and is active
     const product = await Product.findByPk(product_id);
     if (!product || !product.status) {
       return res.status(404).json({
@@ -189,16 +187,19 @@ exports.addToCart = async (req, res) => {
       });
     }
 
-    // Check if product already in cart
-    const existingCartItem = await Cart.findOne({
-      where: {
-        product_id,
-        [Op.or]: [
-          { session_id: sessionId, customer_id: 0 },
-          { customer_id: customerId }
-        ]
-      }
-    });
+    // Check if product already in cart - with proper session ID handling
+    let whereClause = { product_id };
+    
+    if (customerId > 0) {
+      // For logged-in users, find by customer ID
+      whereClause.customer_id = customerId;
+    } else {
+      // For guest users, find by exact session ID
+      whereClause.session_id = sessionId;
+      whereClause.customer_id = 0;
+    }
+    
+    const existingCartItem = await Cart.findOne({ where: whereClause });
 
     if (existingCartItem) {
       // Update quantity
@@ -235,8 +236,7 @@ exports.addToCart = async (req, res) => {
 exports.updateCart = async (req, res) => {
   try {
     console.log('Update cart request body:', req.body);
-    const { product_id, quantity } = req.body;
-    const sessionId = req.session_id;
+    const { product_id, quantity, session_id } = req.body;
     const customerId = req.user ? req.user.customer_id : 0;
     console.log('Update cart - Customer ID:', customerId, 'Product ID:', product_id);
 
@@ -255,8 +255,14 @@ exports.updateCart = async (req, res) => {
     // Add session or customer condition
     if (customerId > 0) {
       whereClause.customer_id = customerId;
+    } else if (session_id) {
+      whereClause.session_id = session_id;
+      whereClause.customer_id = 0;
     } else {
-      whereClause.session_id = sessionId;
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID or authentication is required'
+      });
     }
 
     // Find cart item
@@ -351,21 +357,29 @@ exports.removeFromCart = async (req, res) => {
 // Clear cart
 exports.clearCart = async (req, res) => {
   try {
-    const sessionId = req.session ? req.session.id : `session_${Date.now()}`;
+    const sessionId = req.body.session_id || req.query.session_id;
     const customerId = req.user ? req.user.customer_id : 0;
     
     console.log('Clear cart - Session ID:', sessionId);
     console.log('Clear cart - Customer ID:', customerId);
 
+    // Build where clause based on available identifiers
+    let whereClause = {};
+    
+    if (customerId > 0) {
+      whereClause.customer_id = customerId;
+    } else if (sessionId) {
+      whereClause.session_id = sessionId;
+      whereClause.customer_id = 0;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID or authentication is required'
+      });
+    }
+
     // Delete all cart items for this customer/session
-    await Cart.destroy({
-      where: {
-        [Op.or]: [
-          { session_id: sessionId, customer_id: 0 },
-          { customer_id: customerId, customer_id: { [Op.gt]: 0 } }
-        ]
-      }
-    });
+    await Cart.destroy({ where: whereClause });
 
     return res.json({
       success: true,
@@ -376,6 +390,90 @@ exports.clearCart = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error clearing cart',
+      error: error.message
+    });
+  }
+};
+
+// Transfer guest cart to user account after login
+exports.transferGuestCart = async (req, res) => {
+  try {
+    const { session_id } = req.body;
+    const customerId = req.user.customer_id;
+    
+    if (!session_id || !customerId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Session ID and customer ID are required'
+      });
+    }
+    
+    console.log(`Transferring cart from session ${session_id} to customer ${customerId}`);
+    
+    // Get guest cart items
+    const guestCartItems = await Cart.findAll({
+      where: {
+        session_id,
+        customer_id: 0
+      }
+    });
+    
+    if (!guestCartItems.length) {
+      return res.json({
+        success: true,
+        message: 'No guest cart items to transfer',
+        transferred: 0
+      });
+    }
+    
+    // Get user's existing cart items
+    const userCartItems = await Cart.findAll({
+      where: {
+        customer_id: customerId
+      }
+    });
+    
+    // Process each guest cart item
+    let transferCount = 0;
+    for (const guestItem of guestCartItems) {
+      // Check if product already exists in user's cart
+      const existingItem = userCartItems.find(item => item.product_id === guestItem.product_id);
+      
+      if (existingItem) {
+        // Update quantity if product already in user's cart
+        await Cart.update(
+          { quantity: existingItem.quantity + guestItem.quantity },
+          { where: { cart_id: existingItem.cart_id } }
+        );
+      } else {
+        // Add new item to user's cart
+        await Cart.create({
+          customer_id: customerId,
+          session_id: req.user.session_id || session_id, // Use user's session_id if available, otherwise keep the guest session_id
+          product_id: guestItem.product_id,
+          quantity: guestItem.quantity,
+          date_added: new Date()
+        });
+      }
+      
+      // Delete the guest cart item
+      await Cart.destroy({
+        where: { cart_id: guestItem.cart_id }
+      });
+      
+      transferCount++;
+    }
+    
+    return res.json({
+      success: true,
+      message: `Successfully transferred ${transferCount} items to your cart`,
+      transferred: transferCount
+    });
+  } catch (error) {
+    console.error('Error transferring cart:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error transferring cart',
       error: error.message
     });
   }

@@ -19,6 +19,15 @@ const Order = sequelize.define('order', {
   lastname: DataTypes.STRING,
   email: DataTypes.STRING,
   telephone: DataTypes.STRING,
+  customer_group_id: DataTypes.INTEGER,
+  language_id: DataTypes.INTEGER,
+  currency_id: DataTypes.INTEGER,
+  currency_code: DataTypes.STRING,
+  store_name: DataTypes.STRING,
+  store_url: DataTypes.STRING,
+  date_added: DataTypes.DATE,
+  date_modified: DataTypes.DATE,
+  total_courier_charges: DataTypes.DECIMAL(15, 2),
   payment_firstname: DataTypes.STRING,
   payment_lastname: DataTypes.STRING,
   payment_address_1: DataTypes.STRING,
@@ -29,6 +38,7 @@ const Order = sequelize.define('order', {
   payment_country_id: DataTypes.INTEGER,
   payment_zone: DataTypes.STRING,
   payment_zone_id: DataTypes.INTEGER,
+  payment_telephone: DataTypes.STRING,
   shipping_firstname: DataTypes.STRING,
   shipping_lastname: DataTypes.STRING,
   shipping_address_1: DataTypes.STRING,
@@ -39,6 +49,7 @@ const Order = sequelize.define('order', {
   shipping_country_id: DataTypes.INTEGER,
   shipping_zone: DataTypes.STRING,
   shipping_zone_id: DataTypes.INTEGER,
+  shipping_telephone: DataTypes.STRING,
   payment_method: DataTypes.STRING,
   payment_code: DataTypes.STRING,
   shipping_method: DataTypes.STRING,
@@ -46,7 +57,7 @@ const Order = sequelize.define('order', {
   alternate_mobile: DataTypes.STRING,
   gstin: DataTypes.STRING,
   comment: DataTypes.TEXT,
-  total: DataTypes.DECIMAL(15, 4),
+  total: DataTypes.DECIMAL(15, 2),
   ip: DataTypes.STRING,
   user_agent: DataTypes.STRING,
   order_status_id: DataTypes.INTEGER,
@@ -260,10 +271,28 @@ class OrderModel {
     // Insert parent order
     const parentOrder = await ParentOrder.create({
       parent_order_id: uniqueParentOrderId,
-      order_ids: '[]', // Always use valid JSON empty array
+      order_ids: orderData.order_ids || '[]', // Use the provided order_ids or default to empty array
       courier_charges: orderData.courier_charges || 0,
       total: orderData.total || 0
     }, { transaction });
+
+    // Update all child orders with parent_order_id reference
+    if (orderData.order_ids) {
+      try {
+        const orderIdsArray = JSON.parse(orderData.order_ids);
+        if (Array.isArray(orderIdsArray) && orderIdsArray.length > 0) {
+          await Order.update(
+            { parent_order_id: uniqueParentOrderId },
+            { 
+              where: { order_id: { [Op.in]: orderIdsArray } },
+              transaction 
+            }
+          );
+        }
+      } catch (error) {
+        console.error('Error updating orders with parent_order_id:', error);
+      }
+    }
 
     return uniqueParentOrderId;
   }

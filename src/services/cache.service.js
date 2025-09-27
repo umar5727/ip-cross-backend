@@ -8,6 +8,86 @@ const ProductDescription = require('../models/product/product_description.model'
  */
 class CacheService {
   /**
+   * Invalidate cache by pattern
+   * @param {string} pattern - Redis key pattern to match for invalidation
+   * @returns {Promise<number>} Number of keys invalidated
+   */
+  async invalidateByPattern(pattern) {
+    return new Promise((resolve, reject) => {
+      if (!redisClient || !redisClient.connected) {
+        return resolve(0);
+      }
+
+      redisClient.keys(pattern, (err, keys) => {
+        if (err) {
+          console.error('Error finding keys for invalidation:', err);
+          return resolve(0);
+        }
+
+        if (!keys || keys.length === 0) {
+          return resolve(0);
+        }
+
+        redisClient.del(keys, (err, count) => {
+          if (err) {
+            console.error('Error invalidating cache keys:', err);
+            return resolve(0);
+          }
+          console.log(`Invalidated ${count} cache entries matching pattern: ${pattern}`);
+          resolve(count);
+        });
+      });
+    });
+  }
+
+  /**
+   * Invalidate product-related caches
+   * @param {number} productId - Product ID to invalidate (optional)
+   * @returns {Promise<number>} Number of keys invalidated
+   */
+  async invalidateProductCache(productId = null) {
+    // If specific product ID is provided, invalidate only that product's cache
+    if (productId) {
+      const productPattern = `__express__/api/products/*${productId}*`;
+      return this.invalidateByPattern(productPattern);
+    }
+    
+    // Otherwise invalidate all product-related caches
+    return this.invalidateByPattern('__express__/api/products*');
+  }
+
+  /**
+   * Invalidate category-related caches
+   * @param {number} categoryId - Category ID to invalidate (optional)
+   * @returns {Promise<number>} Number of keys invalidated
+   */
+  async invalidateCategoryCache(categoryId = null) {
+    // If specific category ID is provided, invalidate only that category's cache
+    if (categoryId) {
+      const categoryPattern = `__express__/api/categories/*${categoryId}*`;
+      return this.invalidateByPattern(categoryPattern);
+    }
+    
+    // Otherwise invalidate all category-related caches
+    return this.invalidateByPattern('__express__/api/categories*');
+  }
+
+  /**
+   * Invalidate search-related caches
+   * @param {string} searchTerm - Search term to invalidate (optional)
+   * @returns {Promise<number>} Number of keys invalidated
+   */
+  async invalidateSearchCache(searchTerm = null) {
+    // If specific search term is provided, invalidate only that term's cache
+    if (searchTerm) {
+      const searchPattern = `__express__/api/products?search=${encodeURIComponent(searchTerm)}*`;
+      return this.invalidateByPattern(searchPattern);
+    }
+    
+    // Otherwise invalidate all search-related caches
+    return this.invalidateByPattern('__express__/api/products?search=*');
+  }
+  /**
    * Get the most popular search terms
    * @param {number} limit - Maximum number of terms to retrieve
    * @returns {Promise<Array>} Array of popular search terms

@@ -27,6 +27,9 @@ const { Download, DownloadDescription, ProductToDownload } = require('./download
 const ClickPostOrder = require('./clickpost/clickpost_order.model');
 const Vendor = require('./clickpost/vendor.model');
 
+// Return models
+const { Return, ReturnImage, ReturnReason, ReturnStatus } = require('./return');
+
 // Define relationships
 // Many-to-many relationship between Product and Category
 Product.belongsToMany(Category, { 
@@ -116,5 +119,9 @@ module.exports = {
   Offer,
   ReferralOrder,
   ClickPostOrder,
-  Vendor
+  Vendor,
+  Return,
+  ReturnImage,
+  ReturnReason,
+  ReturnStatus
 };

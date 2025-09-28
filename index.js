@@ -60,7 +60,6 @@ app.use('/api/checkout', checkoutRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/addresses', addressRoutes);
-app.use('/api/customer-account', customerAccountRoutes);
 app.use('/api/downloads', downloadRoutes);
 app.use('/api/order-history', orderHistoryRoutes);
 app.use('/api/wishlist', wishlistRoutes);

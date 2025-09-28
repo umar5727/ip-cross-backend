@@ -6,6 +6,9 @@
 const sequelize = require('../../../config/database');
 const { QueryTypes, DataTypes } = require('sequelize');
 const db = require('../../../config/database');
+const VendorToProduct = require('../product/vendor_to_product.model');
+const VendorOrderProduct = require('../order/vendor_order_product.model');
+const OrderVendorHistory = require('../order/order_vendorhistory.model');
 
 // Define Order model
 const Order = sequelize.define('order', {
@@ -19,6 +22,15 @@ const Order = sequelize.define('order', {
   lastname: DataTypes.STRING,
   email: DataTypes.STRING,
   telephone: DataTypes.STRING,
+  customer_group_id: DataTypes.INTEGER,
+  language_id: DataTypes.INTEGER,
+  currency_id: DataTypes.INTEGER,
+  currency_code: DataTypes.STRING,
+  store_name: DataTypes.STRING,
+  store_url: DataTypes.STRING,
+  date_added: DataTypes.DATE,
+  date_modified: DataTypes.DATE,
+  total_courier_charges: DataTypes.DECIMAL(15, 2),
   payment_firstname: DataTypes.STRING,
   payment_lastname: DataTypes.STRING,
   payment_address_1: DataTypes.STRING,
@@ -29,6 +41,7 @@ const Order = sequelize.define('order', {
   payment_country_id: DataTypes.INTEGER,
   payment_zone: DataTypes.STRING,
   payment_zone_id: DataTypes.INTEGER,
+  payment_telephone: DataTypes.STRING,
   shipping_firstname: DataTypes.STRING,
   shipping_lastname: DataTypes.STRING,
   shipping_address_1: DataTypes.STRING,
@@ -39,6 +52,7 @@ const Order = sequelize.define('order', {
   shipping_country_id: DataTypes.INTEGER,
   shipping_zone: DataTypes.STRING,
   shipping_zone_id: DataTypes.INTEGER,
+  shipping_telephone: DataTypes.STRING,
   payment_method: DataTypes.STRING,
   payment_code: DataTypes.STRING,
   shipping_method: DataTypes.STRING,
@@ -46,7 +60,7 @@ const Order = sequelize.define('order', {
   alternate_mobile: DataTypes.STRING,
   gstin: DataTypes.STRING,
   comment: DataTypes.TEXT,
-  total: DataTypes.DECIMAL(15, 4),
+  total: DataTypes.DECIMAL(15, 2),
   ip: DataTypes.STRING,
   user_agent: DataTypes.STRING,
   order_status_id: DataTypes.INTEGER,
@@ -203,11 +217,11 @@ class OrderModel {
     const orderProducts = products.map(product => ({
       order_id: orderId,
       product_id: product.product_id,
-      name: product.name,
-      model: product.model || '',
+      name: product.product_data?.name || '',
+      model: product.product_data?.model || '',
       quantity: product.quantity,
-      price: product.price,
-      total: product.total,
+      price: product.product_data?.price || 0,
+      total: product.product_data?.price * product.quantity || 0,
       tax: product.tax || 0
     }));
 
@@ -218,22 +232,71 @@ class OrderModel {
    * Add order totals
    * @param {Object} transaction - Database transaction
    * @param {Number} orderId - Order ID
-   * @param {Array} totals - Order totals
+   * @param {Number} finalTotal - Final total value
+   * @param {Number} courierCharge - Courier charges value
+   * @param {Number} voucherDiscount - Voucher discount value (optional)
+   * @param {Number} couponDiscount - Coupon discount value (optional)
+   * @param {Number} firstPurDiscount - First purchase discount value (optional)
    */
-  async addOrderTotals(transaction, orderId, totals) {
-    // Check if totals is an array before mapping
-    if (!Array.isArray(totals)) {
-      console.log('Warning: totals is not an array in addOrderTotals', totals);
-      return; // Exit early if totals is not an array
+  async addOrderTotals(transaction, orderId, finalTotal, courierCharge, voucherDiscount = 0, couponDiscount = 0, firstPurDiscount = 0) {
+    // Calculate sub-total (final total minus courier charges)
+    const subTotal = finalTotal - courierCharge;
+    
+    // Create the three required entries
+    const orderTotals = [
+      {
+        order_id: orderId,
+        code: 'sub_total',
+        title: 'Sub-Total',
+        value: subTotal,
+        sort_order: 1
+      },
+      {
+        order_id: orderId,
+        code: 'courier_charges',
+        title: 'Courier Charges',
+        value: courierCharge,
+        sort_order: 2
+      },
+      {
+        order_id: orderId,
+        code: 'total',
+        title: 'Total',
+        value: finalTotal,
+        sort_order: 3
+      }
+    ];
+    
+    // Add discount entries if they exist
+    if (voucherDiscount > 0) {
+      orderTotals.push({
+        order_id: orderId,
+        code: 'voucher',
+        title: 'Voucher Discount',
+        value: -voucherDiscount, // Negative value for discounts
+        sort_order: 2.1
+      });
     }
     
-    const orderTotals = totals.map(total => ({
-      order_id: orderId,
-      code: total.code,
-      title: total.title,
-      value: total.value,
-      sort_order: total.sort_order
-    }));
+    if (couponDiscount > 0) {
+      orderTotals.push({
+        order_id: orderId,
+        code: 'coupon',
+        title: 'Coupon Discount',
+        value: -couponDiscount, // Negative value for discounts
+        sort_order: 2.2
+      });
+    }
+    
+    if (firstPurDiscount > 0) {
+      orderTotals.push({
+        order_id: orderId,
+        code: 'first_purchase',
+        title: 'First Purchase Discount',
+        value: -firstPurDiscount, // Negative value for discounts
+        sort_order: 2.3
+      });
+    }
 
     await OrderTotal.bulkCreate(orderTotals, { transaction });
   }
@@ -260,10 +323,28 @@ class OrderModel {
     // Insert parent order
     const parentOrder = await ParentOrder.create({
       parent_order_id: uniqueParentOrderId,
-      order_ids: '[]', // Always use valid JSON empty array
+      order_ids: orderData.order_ids || '[]', // Use the provided order_ids or default to empty array
       courier_charges: orderData.courier_charges || 0,
       total: orderData.total || 0
     }, { transaction });
+
+    // Update all child orders with parent_order_id reference
+    if (orderData.order_ids) {
+      try {
+        const orderIdsArray = JSON.parse(orderData.order_ids);
+        if (Array.isArray(orderIdsArray) && orderIdsArray.length > 0) {
+          await Order.update(
+            { parent_order_id: uniqueParentOrderId },
+            { 
+              where: { order_id: { [Op.in]: orderIdsArray } },
+              transaction 
+            }
+          );
+        }
+      } catch (error) {
+        console.error('Error updating orders with parent_order_id:', error);
+      }
+    }
 
     return uniqueParentOrderId;
   }
@@ -357,6 +438,98 @@ class OrderModel {
           transaction
         }
       );
+    }
+  }
+
+  /**
+   * Add vendor order products
+   * @param {Object} transaction - Database transaction
+   * @param {Number} orderId - Order ID
+   * @param {Array} products - Order products
+   */
+  async addVendorOrderProducts(transaction, orderId, products) {
+    try {
+      // Get all order products for this order to get their order_product_id
+      const orderProducts = await sequelize.query(
+        'SELECT * FROM oc_order_product WHERE order_id = :orderId',
+        {
+          replacements: { orderId },
+          type: QueryTypes.SELECT,
+          transaction
+        }
+      );
+
+      for (const product of products) {
+        // Find the corresponding order_product_id
+        const orderProduct = orderProducts.find(op => op.product_id === product.product_id);
+        if (!orderProduct) continue;
+
+        // Get vendor_id from oc_vendor_to_product table
+        const vendorProduct = await VendorToProduct.findOne({
+          where: { product_id: product.product_id },
+          transaction
+        });
+
+        if (!vendorProduct) {
+          console.log(`No vendor found for product_id: ${product.product_id}`);
+          continue; // Skip if no vendor is found
+        }
+
+        // Create vendor order product record
+        await VendorOrderProduct.create({
+          vendor_id: vendorProduct.vendor_id,
+          order_id: orderId,
+          order_product_id: orderProduct.order_product_id,
+          product_id: product.product_id,
+          name: product.product_data?.name || '',
+          model: product.product_data?.model || '',
+          quantity: product.quantity,
+          price: product.product_data?.price || 0,
+          total: product.product_data?.price * product.quantity || 0,
+          rewards: 0, // Default value
+          order_status_id: 0, // Default pending status
+          date_added: sequelize.literal('NOW()'),
+          date_modified: sequelize.literal('NOW()')
+        }, { transaction });
+        
+        // Add vendor order history record
+        await this.addOrderVendorHistory(
+          transaction,
+          orderId,
+          0, // Default pending status
+          vendorProduct.vendor_id,
+          orderProduct.order_product_id,
+          'Order created, awaiting processing'
+        );
+      }
+    } catch (error) {
+      console.error('Error adding vendor order products:', error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Add order vendor history
+   * @param {Object} transaction - Database transaction
+   * @param {Number} orderId - Order ID
+   * @param {Number} orderStatusId - Order status ID
+   * @param {Number} vendorId - Vendor ID
+   * @param {Number} orderProductId - Order product ID
+   * @param {String} comment - Comment
+   */
+  async addOrderVendorHistory(transaction, orderId, orderStatusId, vendorId, orderProductId, comment) {
+    try {
+      await OrderVendorHistory.create({
+        order_id: orderId,
+        order_status_id: orderStatusId,
+        vendor_id: vendorId,
+        order_product_id: orderProductId,
+        comment: comment,
+        date_added: sequelize.literal('NOW()')
+      }, { transaction });
+    } catch (error) {
+      console.error('Error adding order vendor history:', error);
+      throw error;
     }
   }
 

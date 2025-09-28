@@ -53,6 +53,11 @@ exports.confirmCheckout = async (req, res) => {
       if (minQtyMap[item.product_id] < item.product_data.minimum) {
         throw new Error(`Minimum quantity for ${item.product_data.name} is ${item.product_data.minimum} (current: ${minQtyMap[item.product_id]})`);
       }
+      
+      // Check product availability: status must be 1 and quantity must be at least 1
+      if (item.product_data.status !== 1 || item.product_data.quantity < 1) {
+        throw new Error(`Product ${item.product_data.name} is not available.`);
+      }
     }
 
     // 6. Per-product business logic and order creation
@@ -88,9 +93,20 @@ exports.confirmCheckout = async (req, res) => {
       let recurringInfo = cartItem.product_data.recurring ? cartItem.product_data.recurring : null;
       let downloadInfo = cartItem.product_data.download ? cartItem.product_data.download : null;
 
-      // Courier charge calc (pseudo, replace with your logic)
+      // Courier charge calc - commented out old implementation
+      /*
       let courierCharge = 0;
       if (cartItem.product_data.shipping === 1) {
+        const courierRes = await orderModel.getCourierCharge(cartItem.product_id, shipping_address.postcode);
+        if (courierRes.type === 'local') courierCharge = 50;
+        else if (courierRes.type === 'zonal') courierCharge = 80;
+        else if (courierRes.type === 'national') courierCharge = 120;
+      }
+      */
+      
+      // New courier charge logic - apply only to first order if shipping=1 and total<500
+      let courierCharge = 0;
+      if (firstProduct && cartItem.product_data.shipping === 1 && totalSubtotal < 500) {
         const courierRes = await orderModel.getCourierCharge(cartItem.product_id, shipping_address.postcode);
         if (courierRes.type === 'local') courierCharge = 50;
         else if (courierRes.type === 'zonal') courierCharge = 80;
@@ -116,18 +132,29 @@ exports.confirmCheckout = async (req, res) => {
       // Prepare product order data
       let orderData = {
         customer_id,
-        firstname: payment_address.firstname, lastname: payment_address.lastname,
-        email: req.user.email, telephone: req.user.telephone || '',
+        firstname: req.customer.firstname, lastname: req.customer.lastname,
+        email: req.customer.email, telephone: req.customer.telephone || '',
+        customer_group_id: req.customer.customer_group_id,
+        language_id: req.customer.language_id || 1,
+        currency_id: 4,
+        currency_code: 'INR',
+        store_name: 'ipshopy',
+        store_url: 'https://www.ipshopy.com/',
+        date_added: new Date(),
+        date_modified: new Date(),
+        total_courier_charges: firstProduct ? courierCharge : 0,
         payment_firstname: payment_address.firstname, payment_lastname: payment_address.lastname,
         payment_address_1: payment_address.address_1, payment_address_2: payment_address.address_2 || '',
         payment_city: payment_address.city, payment_postcode: payment_address.postcode,
         payment_country: payment_address.country, payment_country_id: payment_address.country_id,
         payment_zone: payment_address.zone, payment_zone_id: payment_address.zone_id,
+        payment_telephone: payment_address.mobile_number || req.user.telephone || '',
         shipping_firstname: shipping_address.firstname, shipping_lastname: shipping_address.lastname,
         shipping_address_1: shipping_address.address_1, shipping_address_2: shipping_address.address_2 || '',
         shipping_city: shipping_address.city, shipping_postcode: shipping_address.postcode,
         shipping_country: shipping_address.country, shipping_country_id: shipping_address.country_id,
         shipping_zone: shipping_address.zone, shipping_zone_id: shipping_address.zone_id,
+        shipping_telephone: shipping_address.mobile_number || req.user.telephone || '',
         payment_method: payment_method.title || '', payment_code: payment_method.code || '',
         shipping_method: req.body.shipping_method?.title || '', shipping_code: req.body.shipping_method?.code || '',
         comment: comment || '',
@@ -150,6 +177,8 @@ exports.confirmCheckout = async (req, res) => {
 
       // Add order products/downloads/recurring
       await orderModel.addOrderProducts(transaction, orderId, [cartItem]);
+      // Add vendor order products
+      await orderModel.addVendorOrderProducts(transaction, orderId, [cartItem]);
       if (recurringInfo) await orderModel.addOrderRecurring(transaction, orderId, recurringInfo);
       if (downloadInfo) await orderModel.addOrderDownload(transaction, orderId, downloadInfo);
 
@@ -159,6 +188,13 @@ exports.confirmCheckout = async (req, res) => {
 
       // Add totals (could break out to model function)
       await orderModel.addOrderTotals(transaction, orderId, finalTotal, courierCharge, voucherDiscount, couponDiscount, firstPurDiscount);
+      
+      // Add order history record for status tracking
+      if (payment_method.code === 'cod') {
+        await orderModel.updateOrderStatus(transaction, orderId, 2, 'Order placed with Cash On Delivery payment method');
+      } else {
+        await orderModel.updateOrderStatus(transaction, orderId, 0, 'Order created, awaiting payment');
+      }
 
       // Update stock
       await orderModel.updateProductStock(transaction, [cartItem]);

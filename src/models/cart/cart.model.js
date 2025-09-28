@@ -1,7 +1,8 @@
-const { DataTypes } = require('sequelize');
+const { DataTypes, Op } = require('sequelize');
 const sequelize = require('../../../config/database');
 const Product = require('../product/product.model');
 const ProductDescription = require('../product/product_description.model');
+const ProductSpecial = require('../product/product_special.model');
 
 const Cart = sequelize.define('cart', {
   cart_id: {
@@ -85,11 +86,32 @@ Cart.getCartWithDetails = async function(customer_id) {
         raw: true
       });
       
+      // Get product special price (selling_price)
+      const productSpecial = await ProductSpecial.findOne({
+        where: { 
+          product_id: item.product_id,
+          date_start: { [Op.lte]: new Date() },
+          date_end: { [Op.gte]: new Date() }
+        },
+        order: [['priority', 'ASC']],
+        raw: true
+      });
+      
+      // Set mrp as the original price
+      const mrp = product.price;
+      // Set selling_price from product special if available
+      const selling_price = productSpecial ? productSpecial.price : null;
+      // Use selling_price if not null and not 0, otherwise use mrp
+      const finalPrice = (selling_price && selling_price !== 0) ? selling_price : mrp;
+      
       // Combine all data
       return {
         ...item,
         product_data: {
           ...product,
+          price: finalPrice, // Override price with the final calculated price
+          mrp: mrp, // Store original price as mrp
+          selling_price: selling_price, // Store special price as selling_price
           name: productDescription ? productDescription.name : '',
           description: productDescription ? productDescription.description : '',
           meta_title: productDescription ? productDescription.meta_title : '',

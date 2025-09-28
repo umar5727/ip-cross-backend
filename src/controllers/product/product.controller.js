@@ -1,6 +1,6 @@
 const { Product, Category, CategoryDescription, ProductSpecial, ProductDescription, ProductImage, ProductVariant } = require('../../models');
 const { cache } = require('../../../config/redis');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
 const sanitizeHtml = require('sanitize-html');
 const { resizeImage } = require('../../utils/image');
 
@@ -197,7 +197,6 @@ exports.getAllProducts = [
       const queryOptions = {
         limit,
         offset,
-        order: [[sortBy, sortOrder]],
         where: {},
         include: [
           {
@@ -254,16 +253,41 @@ exports.getAllProducts = [
         [Op.between]: [priceMin, priceMax]
       };
       
+      // Custom sorting logic based on sortBy parameter
+      if (sortBy === 'price') {
+        // For price sorting, consider both regular price and special price (selling_price)
+        queryOptions.order = [
+          [Sequelize.literal(`
+            CASE 
+              WHEN (SELECT MIN(ps.price) FROM oc_product_special ps 
+                    WHERE ps.product_id = product.product_id 
+                    AND (ps.date_start = '0000-00-00' OR ps.date_start <= CURDATE())
+                    AND (ps.date_end = '0000-00-00' OR ps.date_end >= CURDATE())
+                    LIMIT 1) IS NOT NULL 
+              THEN (SELECT MIN(ps.price) FROM oc_product_special ps 
+                    WHERE ps.product_id = product.product_id 
+                    AND (ps.date_start = '0000-00-00' OR ps.date_start <= CURDATE())
+                    AND (ps.date_end = '0000-00-00' OR ps.date_end >= CURDATE())
+                    LIMIT 1)
+              ELSE product.price
+            END
+          `), sortOrder]
+        ];
+      } else {
+        // For other fields, use standard sorting
+        queryOptions.order = [[sortBy, sortOrder]];
+      }
+      
       // Add manufacturer filter if provided
       if (manufacturerId) {
         queryOptions.where.manufacturer_id = manufacturerId;
       }
       
       // Add stock status filter if provided
-      if (stockStatus) {
-        queryOptions.where.stock_status_id = stockStatus;
-      }
-      
+      // if (stockStatus) {
+      //   queryOptions.where.stock_status_id = stockStatus;
+      // }
+          queryOptions.where.status = 1;
       // Add category filter if provided
       if (categoryId) {
         queryOptions.include[0].where = { category_id: categoryId };

@@ -41,7 +41,18 @@ const CustomerAccount = sequelize.define('customer_account', {
   },
   telephone: {
     type: DataTypes.STRING(32),
-    allowNull: false
+    allowNull: false,
+    unique: true,
+    validate: {
+      is: {
+        args: /^[0-9+\-\s()]+$/,
+        msg: 'Please provide a valid phone number'
+      },
+      len: {
+        args: [10, 15],
+        msg: 'Phone number must be between 10 and 15 characters'
+      }
+    }
   },
   fax: {
     type: DataTypes.STRING(32),
@@ -184,6 +195,12 @@ CustomerAccount.getCustomerById = async function(customerId) {
 CustomerAccount.getCustomerByEmail = async function(email) {
   return await CustomerAccount.findOne({ 
     where: { email: email.toLowerCase() } 
+  });
+};
+
+CustomerAccount.getCustomerByTelephone = async function(telephone) {
+  return await CustomerAccount.findOne({ 
+    where: { telephone: telephone } 
   });
 };
 

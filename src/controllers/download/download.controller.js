@@ -39,15 +39,9 @@ const formatFileSize = (bytes) => {
 // Get customer downloads
 exports.getDownloads = async (req, res) => {
   try {
-    const customerId = req.headers['x-customer-id'];
+    // Get customer ID from authenticated user (set by auth middleware)
+    const customerId = req.customer.customer_id;
     
-    if (!customerId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
     // Pagination
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
@@ -136,16 +130,10 @@ exports.getDownloads = async (req, res) => {
 // Download a specific file
 exports.downloadFile = async (req, res) => {
   try {
-    const customerId = req.headers['x-customer-id'];
+    // Get customer ID from authenticated user (set by auth middleware)
+    const customerId = req.customer.customer_id;
     const downloadId = req.params.downloadId;
     
-    if (!customerId) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
     // For testing purposes, create a sample file if it doesn't exist
     const sampleFilePath = path.join(DOWNLOAD_DIR, `sample-${downloadId}.pdf`);
     if (!fs.existsSync(sampleFilePath)) {

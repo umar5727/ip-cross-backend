@@ -1,11 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const downloadController = require('../controllers/download/download.controller');
+const { protect } = require('../middleware/auth.middleware');
 
-// Get customer downloads
-router.get('/', downloadController.getDownloads);
+// Get customer downloads - requires authentication
+router.get('/', protect, downloadController.getDownloads);
 
-// Download a file
-router.get('/:downloadId', downloadController.downloadFile);
+// Download a file - requires authentication
+router.get('/:downloadId', protect, downloadController.downloadFile);
 
 module.exports = router;

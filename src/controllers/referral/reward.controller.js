@@ -9,12 +9,12 @@ class RewardController {
    */
   static async getCustomerRewards(req, res) {
     try {
-      const customerId = req.headers['x-customer-id'];
+      const customerId = req.customer?.customer_id;
       
       if (!customerId) {
         return res.status(401).json({
           success: false,
-          message: 'Customer ID is required in headers'
+          message: 'Authentication required'
         });
       }
 
@@ -67,12 +67,12 @@ class RewardController {
    */
   static async getTotalRewardPoints(req, res) {
     try {
-      const customerId = req.headers['x-customer-id'];
+      const customerId = req.customer?.customer_id;
       
       if (!customerId) {
         return res.status(401).json({
           success: false,
-          message: 'Customer ID is required in headers'
+          message: 'Authentication required'
         });
       }
 
@@ -104,12 +104,12 @@ class RewardController {
    */
   static async addRewardPoints(req, res) {
     try {
-      const customerId = req.headers['x-customer-id'];
+      const customerId = req.customer?.customer_id;
       
       if (!customerId) {
         return res.status(401).json({
           success: false,
-          message: 'Customer ID is required in headers'
+          message: 'Authentication required'
         });
       }
 
@@ -160,13 +160,13 @@ class RewardController {
    */
   static async getRewardsByOrder(req, res) {
     try {
-      const customerId = req.headers['x-customer-id'];
+      const customerId = req.customer?.customer_id;
       const { orderId } = req.params;
       
       if (!customerId) {
         return res.status(401).json({
           success: false,
-          message: 'Customer ID is required in headers'
+          message: 'Authentication required'
         });
       }
 
@@ -204,12 +204,12 @@ class RewardController {
    */
   static async getRewardStats(req, res) {
     try {
-      const customerId = req.headers['x-customer-id'];
+      const customerId = req.customer?.customer_id;
       
       if (!customerId) {
         return res.status(401).json({
           success: false,
-          message: 'Customer ID is required in headers'
+          message: 'Authentication required'
         });
       }
 

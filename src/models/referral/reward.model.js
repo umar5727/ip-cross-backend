@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../../../config/database');
 
-// Define the CustomerReward model
+// Define the CustomerReward model using existing OpenCart table
 const CustomerReward = sequelize.define('CustomerReward', {
   customer_reward_id: {
     type: DataTypes.INTEGER,
@@ -12,7 +12,7 @@ const CustomerReward = sequelize.define('CustomerReward', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'customer',
+      model: 'oc_customer',
       key: 'customer_id'
     }
   },
@@ -36,7 +36,7 @@ const CustomerReward = sequelize.define('CustomerReward', {
     defaultValue: DataTypes.NOW
   }
 }, {
-  tableName: 'customer_reward',
+  tableName: 'oc_customer_reward', // Use existing OpenCart table
   timestamps: false,
   indexes: [
     {

@@ -21,8 +21,4 @@ router.post('/verify-otp', authController.verifyOTP);
 router.post('/resend-otp', authController.resendOTP);
 router.get('/otp-status/:telephone', authController.getOTPStatus);
 
-// OTP-based registration routes
-router.post('/send-registration-otp', authController.sendRegistrationOTP);
-router.post('/verify-registration-otp', authController.verifyRegistrationOTP);
-
 module.exports = router;

@@ -43,4 +43,11 @@ router.get('/:id', ticketController.getTicketById);
  */
 router.post('/:id/reply', ticketController.addReply);
 
+/**
+ * @route   PUT /api/tickets/:id/status
+ * @desc    Update ticket status
+ * @access  Private (Customer)
+ */
+router.put('/:id/status', ticketController.updateStatus);
+
 module.exports = router;

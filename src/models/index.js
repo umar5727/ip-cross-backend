@@ -20,6 +20,7 @@ const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
 const Ticket = require('./ticket/ticket.model');
 const TicketReply = require('./ticket/ticket_reply.model');
+const OTP = require('./auth/otp.model');
 
 // Define relationships
 // Many-to-many relationship between Product and Category
@@ -100,5 +101,6 @@ module.exports = {
   ProductVariant,
   Cart,
   Ticket,
-  TicketReply
+  TicketReply,
+  OTP
 };

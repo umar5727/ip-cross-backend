@@ -17,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 const customerRoutes = require('./src/routes/customer.routes');
+const customerAccountRoutes = require('./src/routes/customer_account.routes');
 const productRoutes = require('./src/routes/product.routes');
 const categoryRoutes = require('./src/routes/category.routes');
 const orderRoutes = require('./src/routes/order.routes');
@@ -29,6 +30,7 @@ const adminRoutes = require('./src/routes/admin.routes');
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/customer-account', customerAccountRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);

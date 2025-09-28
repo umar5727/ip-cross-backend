@@ -42,6 +42,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
 app.use('/api/all-categories', allCategoriesRoutes);
 
+
 // Root route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to E-commerce API' });
@@ -50,14 +51,14 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
-  
+
   // Initialize background cache scheduler when Redis is connected
   redisClient.on('connect', () => {
     console.log('Connected to Redis, starting background cache scheduler');
     const scheduler = new SchedulerService();
     scheduler.startCacheRefreshJob(30 * 60 * 1000); // Refresh every 30 minutes
   });
-  
+
   // Test database connection
   try {
     await db.authenticate();
@@ -65,7 +66,7 @@ app.listen(PORT, async () => {
   } catch (error) {
     console.error('Unable to connect to the database:', error);
   }
-  
+
   // Test Redis connection
   try {
     // Redis v3.1.2 automatically connects, no need to call connect()

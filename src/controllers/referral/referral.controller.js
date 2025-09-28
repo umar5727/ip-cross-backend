@@ -260,8 +260,8 @@ class ReferralController {
     try {
       const { referralId } = req.params;
       const { status } = req.body;
-      // Use mock customer data for testing if available
-      const customerId = req.headers['x-customer-id'] || (req.customer && req.customer.customer_id);
+      // Use customer data from authentication middleware
+      const customerId = req.customer?.customer_id;
       
       // Validate status
       if (![0, 1, 2].includes(Number(status))) {
@@ -339,8 +339,8 @@ class ReferralController {
   async deleteReferral(req, res) {
     try {
       const { referralId } = req.params;
-      // Use mock customer data for testing if available
-      const customerId = req.headers['x-customer-id'] || (req.customer && req.customer.customer_id);
+      // Use customer data from authentication middleware
+      const customerId = req.customer?.customer_id;
       
       // For testing purposes, create a test referral if it doesn't exist
       if (referralId === '26') {

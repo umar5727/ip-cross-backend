@@ -28,6 +28,9 @@ const adminRoutes = require('./src/routes/admin.routes');
 const referralRoutes = require('./src/routes/referral/referral.routes');
 const downloadRoutes = require('./src/routes/download.routes');
 const rewardRoutes = require('./src/routes/reward.routes');
+const customerAccountRoutes = require('./src/routes/customer_account.routes');
+const addressRoutes = require('./src/routes/address.routes');
+const wishlistRoutes = require('./src/routes/wishlist.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -42,6 +45,9 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/downloads', downloadRoutes);
 app.use('/api/rewards', rewardRoutes);
+app.use('/api/customer-account', customerAccountRoutes);
+app.use('/api/address', addressRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // Root route
 app.get('/', (req, res) => {

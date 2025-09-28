@@ -1,23 +1,23 @@
 const { DataTypes } = require('sequelize');
+const sequelize = require('../../../config/database');
 
-module.exports = (sequelize) => {
-  const ProductToDownload = sequelize.define('ProductToDownload', {
-    product_id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true
-    },
-    download_id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      references: {
-        model: 'Download',
-        key: 'download_id'
-      }
+// Define the ProductToDownload model using existing OpenCart table
+const ProductToDownload = sequelize.define('ProductToDownload', {
+  product_id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true
+  },
+  download_id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    references: {
+      model: 'oc_download',
+      key: 'download_id'
     }
-  }, {
-    tableName: 'product_to_download',
-    timestamps: false
-  });
+  }
+}, {
+  tableName: 'oc_product_to_download', // Use existing OpenCart table
+  timestamps: false
+});
 
-  return ProductToDownload;
-};
+module.exports = ProductToDownload;

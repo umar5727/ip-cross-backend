@@ -80,29 +80,29 @@ const Referral = sequelize.define('Referral', {
     allowNull: true,
     field: 'referrer_email'
   },
-  order_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false,
-    defaultValue: 0,
-    field: 'order_id'
-  },
-  order_total: {
-    type: DataTypes.DECIMAL(15, 4),
-    allowNull: false,
-    defaultValue: 0.0000,
-    field: 'order_total'
-  },
-  expires_at: {
-    type: DataTypes.DATE,
-    allowNull: true,
-    field: 'expires_at'
-  },
-  is_expired: {
-    type: DataTypes.TINYINT(1),
-    allowNull: false,
-    defaultValue: 0,
-    field: 'is_expired'
-  }
+  // order_id: {
+  //   type: DataTypes.INTEGER,
+  //   allowNull: false,
+  //   defaultValue: 0,
+  //   field: 'order_id'
+  // },
+  // order_total: {
+  //   type: DataTypes.DECIMAL(15, 4),
+  //   allowNull: false,
+  //   defaultValue: 0.0000,
+  //   field: 'order_total'
+  // },
+  // expires_at: {
+  //   type: DataTypes.DATE,
+  //   allowNull: true,
+  //   field: 'expires_at'
+  // },
+  // is_expired: {
+  //   type: DataTypes.TINYINT(1),
+  //   allowNull: false,
+  //   defaultValue: 0,
+  //   field: 'is_expired'
+  // }
 }, {
   tableName: 'oc_ipoffer_referral_customers',
   timestamps: false,

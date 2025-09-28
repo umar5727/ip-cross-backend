@@ -450,7 +450,8 @@ class ReferralController {
           model: Customer,
           as: 'customer',
           attributes: ['customer_id', 'firstname', 'lastname', 'email']
-        }]
+        }],
+        attributes: ['referral_id', 'customer_id', 'customer_name', 'customer_email', 'refer_code', 'refer_link', 'status', 'date_added', 'visit', 'conversion', 'earned', 'referrer_name', 'referrer_email'] // Exclude order_id, expires_at, is_expired for now
       });
       
       if (!referral) {

@@ -21,6 +21,14 @@ const ProductVariant = sequelize.define('product_variant', {
   variant_image: {
     type: DataTypes.STRING(255),
     allowNull: true
+  },
+  size_type: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  size_value: {
+    type: DataTypes.STRING(50),
+    allowNull: true
   }
 }, {
   tableName: 'oc_product_variants',

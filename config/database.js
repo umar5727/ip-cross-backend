@@ -19,4 +19,37 @@ const sequelize = new Sequelize(
   }
 );
 
+// Create a connection object with query method for backward compatibility
+const connection = {
+  query: function(sql, params, callback) {
+    // Handle both callback style and promise style
+    if (typeof params === 'function') {
+      callback = params;
+      params = [];
+    }
+    
+    // If callback is provided, use callback style
+    if (typeof callback === 'function') {
+      sequelize.query(sql, {
+        replacements: Array.isArray(params) ? params : [],
+        type: Sequelize.QueryTypes.RAW
+      })
+      .then(([results, metadata]) => {
+        callback(null, results, metadata);
+      })
+      .catch(error => {
+        callback(error);
+      });
+    } else {
+      // Return promise for async/await usage
+      return sequelize.query(sql, {
+        replacements: Array.isArray(params) ? params : [],
+        type: Sequelize.QueryTypes.RAW
+      });
+    }
+  }
+};
+
+// Export both Sequelize instance and connection object
 module.exports = sequelize;
+module.exports.connection = connection;

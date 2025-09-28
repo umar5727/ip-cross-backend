@@ -23,6 +23,13 @@ const TicketReply = require('./ticket/ticket_reply.model');
 const { Referral, Offer, ReferralOrder } = require('./referral');
 const { Download, DownloadDescription, ProductToDownload } = require('./download');
 
+// ClickPost models
+const ClickPostOrder = require('./clickpost/clickpost_order.model');
+const Vendor = require('./clickpost/vendor.model');
+
+// Return models
+const { Return, ReturnImage, ReturnReason, ReturnStatus } = require('./return');
+
 // Define relationships
 // Many-to-many relationship between Product and Category
 Product.belongsToMany(Category, { 
@@ -44,7 +51,7 @@ ProductSpecial.belongsTo(Product, { foreignKey: 'product_id' });
 Product.hasMany(ProductImage, { foreignKey: 'product_id', as: 'ProductImages' });
 ProductImage.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
 
-Product.hasMany(ProductDescription, { foreignKey: 'product_id', as: 'ProductDescriptions' });
+Product.hasMany(ProductDescription, { foreignKey: 'product_id', as: 'product_description' });
 ProductDescription.belongsTo(Product, { foreignKey: 'product_id', as: 'Product' });
 
 Product.hasMany(ProductVariant, { foreignKey: 'product_id' });
@@ -88,6 +95,8 @@ TicketReply.belongsTo(Ticket, { foreignKey: 'ticket_id' });
 Customer.hasMany(TicketReply, { foreignKey: 'customer_id' });
 TicketReply.belongsTo(Customer, { foreignKey: 'customer_id' });
 
+// Referral relationships are defined in src/models/referral/index.js
+
 module.exports = {
   Customer,
   Product,
@@ -108,5 +117,11 @@ module.exports = {
   TicketReply,
   Referral,
   Offer,
-  ReferralOrder
+  ReferralOrder,
+  ClickPostOrder,
+  Vendor,
+  Return,
+  ReturnImage,
+  ReturnReason,
+  ReturnStatus
 };

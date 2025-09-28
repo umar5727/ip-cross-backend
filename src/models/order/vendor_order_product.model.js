@@ -70,4 +70,5 @@ const VendorOrderProduct = sequelize.define('vendor_order_product', {
   timestamps: false
 });
 
+
 module.exports = VendorOrderProduct;

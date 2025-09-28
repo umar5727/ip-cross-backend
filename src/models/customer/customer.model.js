@@ -30,7 +30,18 @@ const Customer = sequelize.define('customer', {
   },
   telephone: {
     type: DataTypes.STRING(32),
-    allowNull: false
+    allowNull: false,
+    unique: true,
+    validate: {
+      is: {
+        args: /^[0-9+\-\s()]+$/,
+        msg: 'Please provide a valid phone number'
+      },
+      len: {
+        args: [10, 15],
+        msg: 'Phone number must be between 10 and 15 characters'
+      }
+    }
   },
   password: {
     type: DataTypes.STRING(255),

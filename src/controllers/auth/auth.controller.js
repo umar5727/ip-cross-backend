@@ -7,10 +7,48 @@ exports.register = async (req, res) => {
   try {
     const { firstname, lastname, email, telephone, password } = req.body;
 
-    // Check if customer already exists
-    const existingCustomer = await Customer.findOne({ where: { email } });
-    if (existingCustomer) {
-      return res.status(400).json({ message: 'Email already in use' });
+    // Validate required fields
+    if (!firstname || !lastname || !email || !telephone || !password) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'All fields are required' 
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please provide a valid email address' 
+      });
+    }
+
+    // Validate telephone format
+    const phoneRegex = /^[0-9+\-\s()]+$/;
+    if (!phoneRegex.test(telephone) || telephone.length < 10 || telephone.length > 15) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Please provide a valid phone number (10-15 digits)' 
+      });
+    }
+
+    // Check if email already exists
+    const existingCustomerByEmail = await Customer.findOne({ where: { email } });
+    if (existingCustomerByEmail) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email already in use' 
+      });
+    }
+
+    // Check if telephone already exists
+    const existingCustomerByPhone = await Customer.findOne({ where: { telephone } });
+    if (existingCustomerByPhone) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Phone number already in use' 
+      });
     }
 
     // Create new customer
@@ -45,6 +83,32 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
+    
+    // Handle unique constraint violations
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      const field = error.errors[0].path;
+      if (field === 'email') {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already in use'
+        });
+      } else if (field === 'telephone') {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already in use'
+        });
+      }
+    }
+    
+    // Handle validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const validationError = error.errors[0];
+      return res.status(400).json({
+        success: false,
+        message: validationError.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Could not register customer'

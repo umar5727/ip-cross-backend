@@ -38,8 +38,5 @@ catalog/
 test-product-search.js
 opencart-tables.sql
 related-to-product.json
-all_categories.postman_collection.json
-
-postman-collections/
 postman-collections/
 all_categories.postman_collection.json

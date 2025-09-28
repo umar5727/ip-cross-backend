@@ -22,21 +22,6 @@ app.use(express.urlencoded({ extended: true }));
 const imageMiddleware = require('./src/middleware/image.middleware');
 app.use('/image', imageMiddleware);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Routes
 const customerRoutes = require('./src/routes/customer.routes');
 const productRoutes = require('./src/routes/product.routes');
@@ -45,7 +30,8 @@ const orderRoutes = require('./src/routes/order.routes');
 const authRoutes = require('./src/routes/auth.routes');
 const cartRoutes = require('./src/routes/cart.routes');
 const checkoutRoutes = require('./src/routes/checkout.routes');
-const allCategoriesRoutes = require('./src/routes/all_categories.routes');
+
+const allCategoriesRoutes = require('./src/routes/all_categories.routes'); //allcategories
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -55,7 +41,8 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
-app.use('/api/all-categories', allCategoriesRoutes);
+
+app.use('/api/all-categories', allCategoriesRoutes); //allcategories
 
 
 // Root route

@@ -68,6 +68,7 @@ app.use('/api/returns', returnRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/banners', bannerRoutes);
 
+
 // Root route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to E-commerce API' });

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const orderHistoryController = require('../controllers/order/order-history.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const orderHistoryController = require('../controllers/customer/order-history.controller');
+const { protect } = require('../middleware/auth.middleware');
 
 // Route to add order history and update order status
-router.post('/add', authMiddleware, orderHistoryController.addOrderHistory);
+router.post('/add', protect, orderHistoryController.addOrderHistory);
 
 module.exports = router;

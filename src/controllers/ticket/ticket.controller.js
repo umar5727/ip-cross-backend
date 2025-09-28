@@ -48,14 +48,19 @@ const TICKET_CATEGORIES = {
 // Get ticket categories
 exports.getTicketCategories = (req, res) => {
   try {
-    const categories = Object.entries(TICKET_CATEGORIES).map(([id, name]) => ({
-      category_id: id,
-      name
-    }));
+    const categories = {
+      general: 'General Inquiry',
+      order: 'Order Related',
+      product: 'Product Issue',
+      payment: 'Payment Issue',
+      shipping: 'Shipping Issue',
+      technical: 'Technical Support',
+      account: 'Account Issue'
+    };
 
     res.status(200).json({
       success: true,
-      data: categories
+      categories: categories
     });
   } catch (error) {
     console.error('Get ticket categories error:', error);
@@ -71,30 +76,34 @@ exports.createTicket = [
   upload.single('file'),
   async (req, res) => {
     try {
-      const { subject, category_id, priority, message } = req.body;
-      const customer_id = req.customer?.customer_id || 8779; // Default to test customer if not available
+      const { subject, category_id, description } = req.body;
+      const customer_id = req.customer?.customer_id;
 
       // Validation
-      if (!subject || !category_id || !message) {
+      if (!subject || !category_id || !description) {
         return res.status(400).json({
           success: false,
-          message: 'All fields (subject, category_id, message) are required'
+          message: 'All fields (subject, category_id, description) are required'
         });
       }
 
-      if (!TICKET_CATEGORIES[category_id]) {
+      // Validate category_id
+      const validCategoryIds = Object.keys(TICKET_CATEGORIES).map(id => parseInt(id));
+      if (!validCategoryIds.includes(parseInt(category_id))) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid category selected'
+          message: 'Invalid category_id selected'
         });
       }
+
+      // Get category name from category_id
+      const categoryName = TICKET_CATEGORIES[category_id];
 
       const ticketData = {
         customer_id,
         subject,
-        category: TICKET_CATEGORIES[category_id],
-        description: message,
-        message: message,
+        category: categoryName, // Use category name instead of category_id
+        description,
         status: 'open',
         file: '',
         date_added: new Date()
@@ -113,7 +122,8 @@ exports.createTicket = [
         data: {
           ticket_id: ticket.ticket_id,
           subject: ticket.subject,
-          category: TICKET_CATEGORIES[ticket.category],
+          category: ticket.category,
+          category_id: parseInt(category_id), // Include both for API compatibility
           status: ticket.status,
           date_added: ticket.date_added
         }
@@ -223,6 +233,7 @@ exports.getTicketById = async (req, res) => {
         },
         {
           model: TicketReply,
+          as: 'TicketReplies',
           order: [['date_added', 'ASC']],
           required: false
         }
@@ -236,25 +247,25 @@ exports.getTicketById = async (req, res) => {
       });
     }
 
-    // Format ticket data
+    // Format ticket data (matching OpenCart structure)
     const formattedTicket = {
       ticket_id: ticket.ticket_id,
       subject: ticket.subject,
       description: ticket.description,
-      category: TICKET_CATEGORIES[ticket.category] || 'Unknown',
+      category: ticket.category,
       status: ticket.status,
-      priority: ticket.priority,
       file: ticket.file,
       date_added: ticket.date_added,
-      date_modified: ticket.date_modified,
-      customer: ticket.Customer,
+      customer_name: ticket.Customer ? `${ticket.Customer.firstname} ${ticket.Customer.lastname}` : 'Unknown Customer',
+      firstname: ticket.Customer?.firstname || '',
+      lastname: ticket.Customer?.lastname || '',
       replies: (ticket.TicketReplies || []).map(reply => ({
         reply_id: reply.reply_id,
+        ticket_id: reply.ticket_id,
+        customer_id: reply.customer_id,
         message: reply.message,
         file: reply.file,
-        sender_type: reply.sender_type,
-        sender_id: reply.sender_id,
-        is_customer: reply.sender_type === 'customer',
+        user_type: reply.user_type,
         date_added: reply.date_added
       }))
     };
@@ -319,9 +330,8 @@ exports.addReply = [
 
       const reply = await TicketReply.create(replyData);
 
-      // Update ticket's date_modified and status
+      // Update ticket status to indicate customer replied
       await ticket.update({ 
-        date_modified: new Date(),
         status: 'customer-reply'
       });
 
@@ -346,11 +356,64 @@ exports.addReply = [
   }
 ];
 
+// Update ticket status (matching OpenCart functionality)
+exports.updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const customer_id = req.customer?.customer_id || 8779; // Default to test customer if not available
+
+    // Validate status
+    const validStatuses = ['open', 'pending', 'closed', 'customer-reply'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Valid statuses are: ' + validStatuses.join(', ')
+      });
+    }
+
+    // Verify ticket belongs to customer
+    const ticket = await Ticket.findOne({
+      where: { 
+        ticket_id: id,
+        customer_id 
+      }
+    });
+
+    if (!ticket) {
+      return res.status(404).json({
+        success: false,
+        message: 'Ticket not found'
+      });
+    }
+
+    // Update ticket status
+    await ticket.update({ status });
+
+    res.status(200).json({
+      success: true,
+      message: 'Ticket status updated successfully',
+      data: {
+        ticket_id: ticket.ticket_id,
+        status: ticket.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Update ticket status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Could not update ticket status'
+    });
+  }
+};
+
 module.exports = {
   createTicket: exports.createTicket,
   getCustomerTickets: exports.getCustomerTickets,
   getTicketById: exports.getTicketById,
   addReply: exports.addReply,
   getTicketCategories: exports.getTicketCategories,
+  updateStatus: exports.updateStatus,
   upload
 };

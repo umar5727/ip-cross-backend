@@ -43,6 +43,7 @@ const clickpostRoutes = require('./src/routes/clickpost.routes');
 const deliveryRoutes = require('./src/routes/delivery.routes');
 const returnRoutes = require('./src/routes/return.routes');
 const walletRoutes = require('./src/routes/wallet.routes');
+const bannerRoutes = require('./src/routes/banner.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -65,6 +66,7 @@ app.use('/api/clickpost', clickpostRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/banners', bannerRoutes);
 
 // Root route
 app.get('/', (req, res) => {

@@ -107,10 +107,11 @@ exports.confirmCheckout = async (req, res) => {
       // New courier charge logic - apply only to first order if shipping=1 and total<500
       let courierCharge = 0;
       if (firstProduct && cartItem.product_data.shipping === 1 && totalSubtotal < 500) {
-        const courierRes = await orderModel.getCourierCharge(cartItem.product_id, shipping_address.postcode);
-        if (courierRes.type === 'local') courierCharge = 50;
-        else if (courierRes.type === 'zonal') courierCharge = 80;
-        else if (courierRes.type === 'national') courierCharge = 120;
+        // const courierRes = await orderModel.getCourierCharge(cartItem.product_id, shipping_address.postcode);
+        // if (courierRes.type === 'local') courierCharge = 50;
+        // else if (courierRes.type === 'zonal') courierCharge = 80;
+        // else if (courierRes.type === 'national') courierCharge = 120;
+         courierCharge = 50;
       }
       // Apply only once if below threshold
       if (firstProduct && totalSubtotal < lowOrderFeeThreshold && !lowOrderFeeApplied) {

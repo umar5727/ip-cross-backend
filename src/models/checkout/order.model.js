@@ -6,9 +6,9 @@
 const sequelize = require('../../../config/database');
 const { QueryTypes, DataTypes } = require('sequelize');
 const db = require('../../../config/database');
-const VendorToProduct = require('../product/vendor_to_product.model');
-const VendorOrderProduct = require('../order/vendor_order_product.model');
-const OrderVendorHistory = require('../order/order_vendorhistory.model');
+const VendorToProduct = require('../product/vendor_to_product.model'); //vendor to product
+const VendorOrderProduct = require('../order/vendor_order_product.model'); //vendor order product
+const OrderVendorHistory = require('../order/order_vendorhistory.model'); //order vendor history
 
 // Define Order model
 const Order = sequelize.define('order', {

@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../../../config/database');
 
+
 const OrderVendorHistory = sequelize.define('OrderVendorHistory', {
   order_vendor_history_id: {
     type: DataTypes.INTEGER,

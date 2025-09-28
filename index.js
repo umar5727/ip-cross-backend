@@ -34,7 +34,6 @@ const checkoutRoutes = require('./src/routes/checkout.routes');
 const ticketRoutes = require('./src/routes/ticket.routes');
 const adminRoutes = require('./src/routes/admin.routes');
 const addressRoutes = require('./src/routes/address.routes');
-const customerAccountRoutes = require('./src/routes/customer_account.routes');
 const downloadRoutes = require('./src/routes/download.routes');
 const orderHistoryRoutes = require('./src/routes/order-history.routes');
 const wishlistRoutes = require('./src/routes/wishlist.routes');

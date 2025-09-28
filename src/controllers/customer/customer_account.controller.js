@@ -17,12 +17,39 @@ exports.register = async (req, res) => {
       });
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid email address'
+      });
+    }
+
+    // Validate telephone format
+    const phoneRegex = /^[0-9+\-\s()]+$/;
+    if (!phoneRegex.test(telephone) || telephone.length < 10 || telephone.length > 15) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid phone number (10-15 digits)'
+      });
+    }
+
     // Check if email already exists
     const emailExists = await CustomerAccount.checkEmailExists(email);
     if (emailExists) {
       return res.status(400).json({
         success: false,
         message: 'Email already exists'
+      });
+    }
+
+    // Check if telephone already exists
+    const existingCustomerByPhone = await CustomerAccount.getCustomerByTelephone(telephone);
+    if (existingCustomerByPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number already exists'
       });
     }
 
@@ -47,6 +74,32 @@ exports.register = async (req, res) => {
     });
   } catch (error) {
     console.error('Registration error:', error);
+    
+    // Handle unique constraint violations
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      const field = error.errors[0].path;
+      if (field === 'email') {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already exists'
+        });
+      } else if (field === 'telephone') {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already exists'
+        });
+      }
+    }
+    
+    // Handle validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const validationError = error.errors[0];
+      return res.status(400).json({
+        success: false,
+        message: validationError.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Could not register customer'
@@ -99,6 +152,26 @@ exports.updateProfile = async (req, res) => {
       }
     }
 
+    // Check if telephone is being changed and if it already exists
+    if (telephone) {
+      // Validate telephone format
+      const phoneRegex = /^[0-9+\-\s()]+$/;
+      if (!phoneRegex.test(telephone) || telephone.length < 10 || telephone.length > 15) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please provide a valid phone number (10-15 digits)'
+        });
+      }
+
+      const existingCustomerByPhone = await CustomerAccount.getCustomerByTelephone(telephone);
+      if (existingCustomerByPhone && existingCustomerByPhone.customer_id !== customerId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already exists'
+        });
+      }
+    }
+
     // Update customer
     const updatedCustomer = await CustomerAccount.updateCustomer(customerId, {
       firstname,
@@ -124,6 +197,32 @@ exports.updateProfile = async (req, res) => {
     });
   } catch (error) {
     console.error('Update profile error:', error);
+    
+    // Handle unique constraint violations
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      const field = error.errors[0].path;
+      if (field === 'email') {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already exists'
+        });
+      } else if (field === 'telephone') {
+        return res.status(400).json({
+          success: false,
+          message: 'Phone number already exists'
+        });
+      }
+    }
+    
+    // Handle validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const validationError = error.errors[0];
+      return res.status(400).json({
+        success: false,
+        message: validationError.message
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Could not update profile'

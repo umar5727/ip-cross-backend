@@ -170,7 +170,7 @@ class CacheService {
         include: [
           {
             model: ProductDescription,
-            as: 'product_descriptions',
+            as: 'product_description',
             attributes: ['name', 'meta_title', 'meta_description', 'meta_keyword', 'tag'],
             where: {
               [Op.or]: [

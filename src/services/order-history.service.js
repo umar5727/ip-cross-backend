@@ -1,8 +1,8 @@
 const sequelize = require('../../config/database');
 const OrderHistory = require('../models/order_history');
-const Order = require('../models/order/order.model');
+const Order = require('../models/customer/order.model');
 const ProductModel = require('../models/product/product.model');
-const ProductOptionValueModel = require('../models/product/product_option_value.model');
+// const ProductOptionValueModel = require('../models/product/product_option_value.model'); // Model not implemented yet
 
 /**
  * Service to handle order history operations
@@ -92,23 +92,23 @@ class OrderHistoryService {
             }
           );
           
-          // Update option values stock
-          for (const option of orderOptions) {
-            if (option.product_option_value_id) {
-              await ProductOptionValueModel.update(
-                { 
-                  quantity: sequelize.literal(`quantity - ${product.quantity}`) 
-                },
-                { 
-                  where: { 
-                    product_option_value_id: option.product_option_value_id,
-                    subtract: 1
-                  },
-                  transaction
-                }
-              );
-            }
-          }
+          // Update option values stock - commented out until ProductOptionValueModel is implemented
+          // for (const option of orderOptions) {
+          //   if (option.product_option_value_id) {
+          //     await ProductOptionValueModel.update(
+          //       { 
+          //         quantity: sequelize.literal(`quantity - ${product.quantity}`) 
+          //       },
+          //       { 
+          //         where: { 
+          //           product_option_value_id: option.product_option_value_id,
+          //           subtract: 1
+          //         },
+          //         transaction
+          //       }
+          //     );
+          //   }
+          // }
         }
       }
       

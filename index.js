@@ -30,7 +30,20 @@ const orderRoutes = require('./src/routes/order.routes');
 const authRoutes = require('./src/routes/auth.routes');
 const cartRoutes = require('./src/routes/cart.routes');
 const checkoutRoutes = require('./src/routes/checkout.routes');
-const allCategoriesRoutes = require('./src/routes/all_categories.routes');
+const ticketRoutes = require('./src/routes/ticket.routes');
+const adminRoutes = require('./src/routes/admin.routes');
+const addressRoutes = require('./src/routes/address.routes');
+const customerAccountRoutes = require('./src/routes/customer_account.routes');
+const downloadRoutes = require('./src/routes/download.routes');
+const orderHistoryRoutes = require('./src/routes/order-history.routes');
+const wishlistRoutes = require('./src/routes/wishlist.routes');
+const referralRoutes = require('./src/routes/referral/referral.routes');
+const rewardRoutes = require('./src/routes/reward.routes');
+const clickpostRoutes = require('./src/routes/clickpost.routes');
+const deliveryRoutes = require('./src/routes/delivery.routes');
+const returnRoutes = require('./src/routes/return.routes');
+const walletRoutes = require('./src/routes/wallet.routes');
+const bannerRoutes = require('./src/routes/banner.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -40,7 +53,20 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/checkout', checkoutRoutes);
-app.use('/api/all-categories', allCategoriesRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/addresses', addressRoutes);
+app.use('/api/customer-account', customerAccountRoutes);
+app.use('/api/downloads', downloadRoutes);
+app.use('/api/order-history', orderHistoryRoutes);
+app.use('/api/wishlist', wishlistRoutes);
+app.use('/api/referral', referralRoutes);
+app.use('/api/rewards', rewardRoutes);
+app.use('/api/clickpost', clickpostRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/returns', returnRoutes);
+app.use('/api/wallet', walletRoutes);
+app.use('/api/banners', bannerRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -50,14 +76,14 @@ app.get('/', (req, res) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
-  
+
   // Initialize background cache scheduler when Redis is connected
   redisClient.on('connect', () => {
     console.log('Connected to Redis, starting background cache scheduler');
     const scheduler = new SchedulerService();
     scheduler.startCacheRefreshJob(30 * 60 * 1000); // Refresh every 30 minutes
   });
-  
+
   // Test database connection
   try {
     await db.authenticate();
@@ -65,7 +91,7 @@ app.listen(PORT, async () => {
   } catch (error) {
     console.error('Unable to connect to the database:', error);
   }
-  
+
   // Test Redis connection
   try {
     // Redis v3.1.2 automatically connects, no need to call connect()

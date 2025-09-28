@@ -63,6 +63,7 @@ exports.getCart = async (req, res) => {
       include: [
         {
           model: ProductDescription,
+          as: 'product_description',
           where: { language_id: languageId },
           attributes: ['name', 'description']
         },

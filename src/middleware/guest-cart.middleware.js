@@ -26,9 +26,19 @@ exports.optionalAuth = async (req, res, next) => {
     try {
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // Get customer ID from decoded token (support both formats)
+      const customerId = decoded.customer_id || decoded.id;
+      console.log('Token decoded, customer_id:', customerId);
+
+      if (!customerId) {
+        console.log('No customer_id in token, proceeding as guest user');
+        next();
+        return;
+      }
 
       // Get customer from database
-      const customer = await Customer.findByPk(decoded.id, {
+      const customer = await Customer.findByPk(customerId, {
         attributes: { exclude: ['password', 'salt'] }
       });
 
@@ -50,14 +60,17 @@ exports.optionalAuth = async (req, res, next) => {
 
       // Add customer to request object
       req.customer = customer;
-      // Also set req.user with customer_id for compatibility with cart controller
+      
+      // IMPORTANT: Set req.user with customer_id for compatibility with cart controller
       req.user = {
         customer_id: customer.customer_id
       };
+      
+      console.log('User authenticated with customer_id:', customer.customer_id);
       next();
     } catch (error) {
       // If token verification fails, proceed as guest
-      console.log('Token verification failed, proceeding as guest user');
+      console.log('Token verification failed, proceeding as guest user:', error.message);
       next();
     }
   } catch (error) {

@@ -2,7 +2,6 @@ const jwt = require('jsonwebtoken');
 const { Customer } = require('../../models');
 const { redisClient } = require('../../../config/redis');
 const otpService = require('../../services/otp.service');
-const otpService = require('../../services/otp.service');
 
 // Register a new customer
 exports.register = async (req, res) => {
@@ -247,11 +246,6 @@ exports.login = async (req, res) => {
     res.status(200).json({
       success: true,
       token,
-      salt: customer.salt, // Explicitly include salt at the top level
-      customer: {
-        id: customer.customer_id,
-        ...customerData
-      }
       salt: customer.salt, // Explicitly include salt at the top level
       customer: {
         id: customer.customer_id,

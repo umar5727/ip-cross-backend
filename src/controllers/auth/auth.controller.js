@@ -8,34 +8,12 @@ exports.register = async (req, res) => {
   try {
     const { firstname, lastname, email, telephone, password } = req.body;
 
-    // Validate required fields
-    if (!firstname || !lastname || !email || !telephone || !password) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'All fields are required' 
-      });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Please provide a valid email address' 
-      });
-    }
-
-    // Validate telephone format
-    const phoneRegex = /^[0-9+\-\s()]+$/;
-    if (!phoneRegex.test(telephone) || telephone.length < 10 || telephone.length > 15) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Please provide a valid phone number (10-15 digits)' 
-      });
-    }
-
-    // Check if email already exists
-    const existingCustomerByEmail = await Customer.findOne({ where: { email } });
+    // Check if customer already exists by email (check entire database)
+    const existingCustomerByEmail = await Customer.findOne({ 
+      where: { 
+        email: email.toLowerCase().trim() 
+      } 
+    });
     if (existingCustomerByEmail) {
       return res.status(400).json({ 
         success: false,
@@ -43,8 +21,12 @@ exports.register = async (req, res) => {
       });
     }
 
-    // Check if telephone already exists
-    const existingCustomerByPhone = await Customer.findOne({ where: { telephone } });
+    // Check if customer already exists by telephone (check entire database)
+    const existingCustomerByPhone = await Customer.findOne({ 
+      where: { 
+        telephone: telephone.trim() 
+      } 
+    });
     if (existingCustomerByPhone) {
       return res.status(400).json({ 
         success: false,
@@ -73,6 +55,10 @@ exports.register = async (req, res) => {
         id: customer.customer_id,
         customer_id: customer.customer_id 
       },
+      { 
+        id: customer.customer_id,
+        customer_id: customer.customer_id 
+      },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN }
     );
@@ -88,28 +74,27 @@ exports.register = async (req, res) => {
   } catch (error) {
     console.error('Registration error:', error);
     
-    // Handle unique constraint violations
+    // Handle Sequelize unique constraint violations
     if (error.name === 'SequelizeUniqueConstraintError') {
       const field = error.errors[0].path;
-      if (field === 'email') {
-        return res.status(400).json({
-          success: false,
-          message: 'Email already in use'
-        });
-      } else if (field === 'telephone') {
-        return res.status(400).json({
-          success: false,
-          message: 'Phone number already in use'
-        });
-      }
+      const message = field === 'email' 
+        ? 'Email already in use' 
+        : field === 'telephone' 
+        ? 'Phone number already in use' 
+        : 'This information is already in use';
+      
+      return res.status(400).json({
+        success: false,
+        message: message
+      });
     }
     
     // Handle validation errors
     if (error.name === 'SequelizeValidationError') {
-      const validationError = error.errors[0];
+      const message = error.errors[0].message;
       return res.status(400).json({
         success: false,
-        message: validationError.message
+        message: message
       });
     }
     
@@ -388,15 +373,36 @@ exports.sendOTP = async (req, res) => {
       });
     }
 
+    // Check if customer exists with this phone number (check entire database)
+    const customer = await Customer.findOne({ 
+      where: { 
+        telephone: telephone.trim() 
+      } 
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this phone number. Please register first.'
+      });
+    }
+
     // Check resend status
     const resendStatus = await otpService.checkResendStatus(telephone);
     if (!resendStatus.canResend) {
-      return res.status(429).json({
+      const statusCode = resendStatus.isLocked ? 423 : 429; // 423 for locked, 429 for cooldown
+      const message = resendStatus.isLocked 
+        ? `Account is temporarily locked due to too many failed attempts. Please try again in ${resendStatus.lockoutRemaining} seconds.`
+        : `Please wait ${resendStatus.resendAfter} seconds before requesting another OTP`;
+      
+      return res.status(statusCode).json({
         success: false,
-        message: `Please wait ${resendStatus.resendAfter} seconds before requesting another OTP`,
-        code: 'RESEND_COOLDOWN',
+        message: message,
+        code: resendStatus.isLocked ? 'ACCOUNT_LOCKED' : 'RESEND_COOLDOWN',
         canResend: false,
-        resendAfter: resendStatus.resendAfter
+        resendAfter: resendStatus.resendAfter,
+        isLocked: resendStatus.isLocked,
+        lockoutRemaining: resendStatus.lockoutRemaining
       });
     }
 
@@ -447,11 +453,13 @@ exports.verifyOTP = async (req, res) => {
     const verificationResult = await otpService.verifyOTP(telephone, otp);
 
     if (!verificationResult.success) {
-      return res.status(400).json({
+      const statusCode = verificationResult.code === 'MAX_ATTEMPTS_EXCEEDED' ? 423 : 400;
+      return res.status(statusCode).json({
         success: false,
         message: verificationResult.message,
         code: verificationResult.code,
-        remainingAttempts: verificationResult.remainingAttempts
+        remainingAttempts: verificationResult.remainingAttempts,
+        lockoutDuration: verificationResult.lockoutDuration
       });
     }
 
@@ -577,6 +585,20 @@ exports.resendOTP = async (req, res) => {
       });
     }
 
+    // Check if customer exists with this phone number (check entire database)
+    const customer = await Customer.findOne({ 
+      where: { 
+        telephone: telephone.trim() 
+      } 
+    });
+
+    if (!customer) {
+      return res.status(404).json({
+        success: false,
+        message: 'No account found with this phone number. Please register first.'
+      });
+    }
+
     // Resend OTP
     const result = await otpService.resendOTP(telephone);
 
@@ -592,12 +614,15 @@ exports.resendOTP = async (req, res) => {
         }
       });
     } else {
-      res.status(400).json({
+      const statusCode = result.code === 'ACCOUNT_LOCKED' ? 423 : 400;
+      res.status(statusCode).json({
         success: false,
         message: result.message || 'Failed to resend OTP',
         code: result.code,
         canResend: result.canResend,
         resendAfter: result.resendAfter,
+        isLocked: result.code === 'ACCOUNT_LOCKED',
+        lockoutRemaining: result.lockoutRemaining,
         error: result.error
       });
     }
@@ -606,6 +631,211 @@ exports.resendOTP = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Could not resend OTP'
+    });
+  }
+};
+
+// Send OTP for registration
+exports.sendRegistrationOTP = async (req, res) => {
+  try {
+    const { telephone } = req.body;
+
+    // Validate input
+    if (!telephone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required'
+      });
+    }
+
+    // Check if customer already exists with this phone number (check entire database)
+    const existingCustomer = await Customer.findOne({ 
+      where: { 
+        telephone: telephone.trim() 
+      } 
+    });
+
+    if (existingCustomer) {
+      return res.status(400).json({
+        success: false,
+        message: 'An account with this phone number already exists. Please use login instead.'
+      });
+    }
+
+    // Check resend status
+    const resendStatus = await otpService.checkResendStatus(telephone);
+    if (!resendStatus.canResend) {
+      const statusCode = resendStatus.isLocked ? 423 : 429; // 423 for locked, 429 for cooldown
+      const message = resendStatus.isLocked 
+        ? `Account is temporarily locked due to too many failed attempts. Please try again in ${resendStatus.lockoutRemaining} seconds.`
+        : `Please wait ${resendStatus.resendAfter} seconds before requesting another OTP`;
+      
+      return res.status(statusCode).json({
+        success: false,
+        message: message,
+        code: resendStatus.isLocked ? 'ACCOUNT_LOCKED' : 'RESEND_COOLDOWN',
+        canResend: false,
+        resendAfter: resendStatus.resendAfter,
+        isLocked: resendStatus.isLocked,
+        lockoutRemaining: resendStatus.lockoutRemaining
+      });
+    }
+
+    // Send OTP
+    const result = await otpService.sendOTP(telephone);
+
+    if (result.success) {
+      res.status(200).json({
+        success: true,
+        message: 'OTP sent successfully to your WhatsApp for registration',
+        data: {
+          phoneNumber: telephone,
+          messageId: result.messageId,
+          canResend: result.canResend,
+          resendAfter: result.resendAfter
+        }
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message || 'Failed to send OTP',
+        error: result.error
+      });
+    }
+  } catch (error) {
+    console.error('Send registration OTP error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Could not send OTP'
+    });
+  }
+};
+
+// Verify OTP and complete registration
+exports.verifyRegistrationOTP = async (req, res) => {
+  try {
+    const { telephone, otp, firstname, lastname, email, password } = req.body;
+
+    // Validate input
+    if (!telephone || !otp || !firstname || !lastname || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number, OTP, name, email, and password are required'
+      });
+    }
+
+    // Verify OTP
+    const verificationResult = await otpService.verifyOTP(telephone, otp);
+
+    if (!verificationResult.success) {
+      const statusCode = verificationResult.code === 'MAX_ATTEMPTS_EXCEEDED' ? 423 : 400;
+      return res.status(statusCode).json({
+        success: false,
+        message: verificationResult.message,
+        code: verificationResult.code,
+        remainingAttempts: verificationResult.remainingAttempts,
+        lockoutDuration: verificationResult.lockoutDuration
+      });
+    }
+
+    // Check if customer already exists by email (check entire database)
+    const existingCustomerByEmail = await Customer.findOne({ 
+      where: { 
+        email: email.toLowerCase().trim() 
+      } 
+    });
+    if (existingCustomerByEmail) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Email already in use' 
+      });
+    }
+
+    // Check if customer already exists by telephone (double check entire database)
+    const existingCustomerByPhone = await Customer.findOne({ 
+      where: { 
+        telephone: telephone.trim() 
+      } 
+    });
+    if (existingCustomerByPhone) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Phone number already in use' 
+      });
+    }
+
+    // Create new customer
+    const customer = await Customer.create({
+      customer_group_id: 1, // Default customer group
+      firstname,
+      lastname,
+      email,
+      telephone,
+      password,
+      ip: req.ip,
+      status: true,
+      approved: true,
+      safe: true,
+      date_added: new Date()
+    });
+
+    // Generate token
+    const token = jwt.sign(
+      { 
+        id: customer.customer_id,
+        customer_id: customer.customer_id 
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    // Store token in Redis
+    console.log(`Storing registration token for customer ID: ${customer.customer_id}`);
+    try {
+      redisClient.set(`auth_${customer.customer_id}`, token, 'EX', 86400);
+    } catch (redisError) {
+      console.error('Redis error (non-blocking):', redisError);
+    }
+
+    // Remove password from response
+    const { password: _, ...customerData } = customer.toJSON();
+
+    res.status(201).json({
+      success: true,
+      message: 'Registration successful',
+      token,
+      data: customerData
+    });
+  } catch (error) {
+    console.error('Verify registration OTP error:', error);
+    
+    // Handle Sequelize unique constraint violations
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      const field = error.errors[0].path;
+      const message = field === 'email' 
+        ? 'Email already in use' 
+        : field === 'telephone' 
+        ? 'Phone number already in use' 
+        : 'This information is already in use';
+      
+      return res.status(400).json({
+        success: false,
+        message: message
+      });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'SequelizeValidationError') {
+      const message = error.errors[0].message;
+      return res.status(400).json({
+        success: false,
+        message: message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Could not complete registration'
     });
   }
 };
@@ -631,7 +861,9 @@ exports.getOTPStatus = async (req, res) => {
         phoneNumber: telephone,
         hasActiveOTP: hasActiveOTP,
         canResend: resendStatus.canResend,
-        resendAfter: resendStatus.resendAfter
+        resendAfter: resendStatus.resendAfter,
+        isLocked: resendStatus.isLocked,
+        lockoutRemaining: resendStatus.lockoutRemaining
       }
     });
   } catch (error) {

@@ -20,6 +20,7 @@ const ProductCategory = require('./product/product_category.model');
 const Cart = require('./cart/cart.model');
 const Ticket = require('./ticket/ticket.model');
 const TicketReply = require('./ticket/ticket_reply.model');
+const OTP = require('./auth/otp.model');
 const { Referral, Offer, ReferralOrder } = require('./referral');
 const { Download, DownloadDescription, ProductToDownload } = require('./download');
 
@@ -115,6 +116,7 @@ module.exports = {
   Cart,
   Ticket,
   TicketReply,
+  OTP,
   Referral,
   Offer,
   ReferralOrder,

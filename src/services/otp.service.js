@@ -10,6 +10,7 @@ class OTPService {
     
     this.otpExpiry = 300; // 5 minutes in seconds
     this.maxAttempts = 3; // Maximum OTP verification attempts
+    this.lockoutDuration = 300; // 5 minutes lockout after max attempts
   }
 
   /**
@@ -38,12 +39,65 @@ class OTPService {
   }
 
   /**
+   * Check if phone number is locked out due to too many failed attempts
+   * @param {string} phoneNumber - Customer's phone number
+   * @returns {Promise<Object>} - Lockout status
+   */
+  async checkLockoutStatus(phoneNumber) {
+    return new Promise((resolve) => {
+      try {
+        const lockoutKey = `lockout_${phoneNumber}`;
+        redisClient.get(lockoutKey, (err, lockoutData) => {
+          if (err) {
+            console.error('Redis get error for lockout status:', err);
+            return resolve({
+              isLocked: false,
+              lockoutRemaining: 0
+            });
+          }
+
+          if (lockoutData) {
+            const lockoutInfo = JSON.parse(lockoutData);
+            const timeRemaining = Math.max(0, lockoutInfo.expiresAt - Date.now());
+            return resolve({
+              isLocked: timeRemaining > 0,
+              lockoutRemaining: Math.ceil(timeRemaining / 1000) // Convert to seconds
+            });
+          }
+
+          resolve({
+            isLocked: false,
+            lockoutRemaining: 0
+          });
+        });
+      } catch (error) {
+        console.error('Error checking lockout status:', error);
+        resolve({
+          isLocked: false,
+          lockoutRemaining: 0
+        });
+      }
+    });
+  }
+
+  /**
    * Send OTP via Interakt WhatsApp Template API
    * @param {string} phoneNumber - Customer's phone number
    * @returns {Promise<Object>} - API response
    */
   async sendOTP(phoneNumber) {
     try {
+      // Check if phone number is locked out
+      const lockoutStatus = await this.checkLockoutStatus(phoneNumber);
+      if (lockoutStatus.isLocked) {
+        return {
+          success: false,
+          message: `Account is temporarily locked due to too many failed attempts. Please try again in ${lockoutStatus.lockoutRemaining} seconds.`,
+          code: 'ACCOUNT_LOCKED',
+          lockoutRemaining: lockoutStatus.lockoutRemaining
+        };
+      }
+
       const otp = this.generateOTP();
       const formattedNumber = this.formatPhoneNumber(phoneNumber);
       
@@ -185,19 +239,6 @@ class OTPService {
           try {
             const otpData = JSON.parse(otpDataStr);
             
-            // Check if max attempts exceeded
-            if (otpData.attempts >= this.maxAttempts) {
-              // Delete OTP after max attempts
-              redisClient.del(otpKey, (delErr) => {
-                if (delErr) console.error('Redis del error:', delErr);
-              });
-              return resolve({
-                success: false,
-                message: 'Maximum verification attempts exceeded',
-                code: 'MAX_ATTEMPTS_EXCEEDED'
-              });
-            }
-
             // Verify OTP
             if (otpData.otp === enteredOTP) {
               // Delete OTP after successful verification
@@ -212,6 +253,35 @@ class OTPService {
             } else {
               // Increment attempts
               otpData.attempts += 1;
+              
+              // Check if max attempts exceeded after increment
+              if (otpData.attempts >= this.maxAttempts) {
+                // Set lockout for 5 minutes
+                const lockoutKey = `lockout_${phoneNumber}`;
+                const lockoutData = {
+                  phoneNumber: phoneNumber,
+                  lockedAt: Date.now(),
+                  expiresAt: Date.now() + (this.lockoutDuration * 1000) // Convert to milliseconds
+                };
+                
+                redisClient.setex(lockoutKey, this.lockoutDuration, JSON.stringify(lockoutData), (lockoutErr) => {
+                  if (lockoutErr) console.error('Redis lockout setex error:', lockoutErr);
+                });
+                
+                // Delete OTP after max attempts
+                redisClient.del(otpKey, (delErr) => {
+                  if (delErr) console.error('Redis del error:', delErr);
+                });
+                
+                return resolve({
+                  success: false,
+                  message: `Maximum verification attempts exceeded. Account locked for ${this.lockoutDuration} seconds.`,
+                  code: 'MAX_ATTEMPTS_EXCEEDED',
+                  lockoutDuration: this.lockoutDuration
+                });
+              }
+              
+              // Update attempts in Redis
               redisClient.setex(otpKey, this.otpExpiry, JSON.stringify(otpData), (setErr) => {
                 if (setErr) console.error('Redis setex error:', setErr);
               });
@@ -275,6 +345,17 @@ class OTPService {
   async resendOTP(phoneNumber) {
     return new Promise(async (resolve) => {
       try {
+        // Check if phone number is locked out
+        const lockoutStatus = await this.checkLockoutStatus(phoneNumber);
+        if (lockoutStatus.isLocked) {
+          return resolve({
+            success: false,
+            message: `Account is temporarily locked due to too many failed attempts. Please try again in ${lockoutStatus.lockoutRemaining} seconds.`,
+            code: 'ACCOUNT_LOCKED',
+            lockoutRemaining: lockoutStatus.lockoutRemaining
+          });
+        }
+
         const resendKey = `resend_${phoneNumber}`; // Use original phone number for key
         
         // Check if resend is allowed (60-second cooldown)
@@ -325,8 +406,19 @@ class OTPService {
    * @returns {Promise<Object>} - Resend status
    */
   async checkResendStatus(phoneNumber) {
-    return new Promise((resolve) => {
+    return new Promise(async (resolve) => {
       try {
+        // Check lockout status first
+        const lockoutStatus = await this.checkLockoutStatus(phoneNumber);
+        if (lockoutStatus.isLocked) {
+          return resolve({
+            canResend: false,
+            resendAfter: lockoutStatus.lockoutRemaining,
+            isLocked: true,
+            lockoutRemaining: lockoutStatus.lockoutRemaining
+          });
+        }
+
         const resendKey = `resend_${phoneNumber}`; // Use original phone number for key
         
         redisClient.get(resendKey, (err, resendData) => {
@@ -334,27 +426,31 @@ class OTPService {
             console.error('Redis get error for resend status:', err);
             return resolve({
               canResend: true,
-              resendAfter: 0
+              resendAfter: 0,
+              isLocked: false
             });
           }
 
           if (resendData) {
             return resolve({
               canResend: false,
-              resendAfter: 60
+              resendAfter: 60,
+              isLocked: false
             });
           }
 
           resolve({
             canResend: true,
-            resendAfter: 0
+            resendAfter: 0,
+            isLocked: false
           });
         });
       } catch (error) {
         console.error('Error checking resend status:', error);
         resolve({
           canResend: true,
-          resendAfter: 0
+          resendAfter: 0,
+          isLocked: false
         });
       }
     });

@@ -22,6 +22,21 @@ app.use(express.urlencoded({ extended: true }));
 const imageMiddleware = require('./src/middleware/image.middleware');
 app.use('/image', imageMiddleware);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Routes
 const customerRoutes = require('./src/routes/customer.routes');
 const productRoutes = require('./src/routes/product.routes');

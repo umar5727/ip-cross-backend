@@ -1,5 +1,5 @@
 const express = require('express');
-const RewardController = require('../controllers/reward/reward.controller');
+const RewardController = require('../controllers/referral/reward.controller');
 const { protect } = require('../middleware/auth.middleware');
 
 const router = express.Router();

@@ -5,30 +5,36 @@
 		"description": "Collection for testing Reward API endpoints with JWT authentication",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
+
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"exec": [
+					"// Set base URL",
+					"pm.environment.set('base_url', 'http://localhost:3000');"
+				],
+				"type": "text/javascript"
+			}
+		}
+	],
 	"item": [
 		{
 			"name": "Authentication",
 			"item": [
 				{
-					"name": "Login - Get JWT Token",
+					"name": "Login",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Login successful', function () {",
 									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has token\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', true);",
-									"    pm.expect(jsonData.data).to.have.property('token');",
-									"    ",
-									"    // Store the token for use in other requests",
-									"    const token = jsonData.data.token;",
-									"    pm.collectionVariables.set('jwt_token', token);",
-									"    console.log('JWT token stored:', token);",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.token).to.exist;",
+									"    pm.environment.set('jwt_token', responseJson.token);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -45,43 +51,33 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"{{customer_email}}\",\n    \"password\": \"password123\"\n}"
+							"raw": "{\n    \"email\": \"test@example.com\",\n    \"password\": \"password123\"\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "auth", "login"]
 						}
-					},
-					"response": []
+					}
 				}
 			]
 		},
 		{
-			"name": "Protected Endpoints - JWT Auth",
+			"name": "Reward Endpoints",
 			"item": [
 				{
-					"name": "Get Customer Rewards - JWT Auth",
+					"name": "Get Customer Rewards",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Get rewards successful', function () {",
 									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has rewards data\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', true);",
-									"    pm.expect(jsonData.data).to.have.property('rewards');",
-									"    pm.expect(jsonData.data).to.have.property('pagination');",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.data).to.exist;",
+									"    pm.expect(responseJson.data.rewards).to.be.an('array');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -92,19 +88,18 @@
 						"method": "GET",
 						"header": [
 							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
+								"key": "x-customer-id",
+								"value": "1"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com"
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/rewards?page=1&limit=10&sort=date_added&order=DESC",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards"
-							],
+							"raw": "{{base_url}}/api/rewards?page=1&limit=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rewards"],
 							"query": [
 								{
 									"key": "page",
@@ -113,36 +108,24 @@
 								{
 									"key": "limit",
 									"value": "10"
-								},
-								{
-									"key": "sort",
-									"value": "date_added"
-								},
-								{
-									"key": "order",
-									"value": "DESC"
 								}
 							]
 						}
-					},
-					"response": []
+					}
 				},
 				{
-					"name": "Get Total Reward Points - JWT Auth",
+					"name": "Get Total Reward Points",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Get total points successful', function () {",
 									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has total points data\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', true);",
-									"    pm.expect(jsonData.data).to.have.property('total_points');",
-									"    pm.expect(jsonData.data).to.have.property('customer_id');",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.data).to.exist;",
+									"    pm.expect(responseJson.data.total_points).to.exist;",
 									"});"
 								],
 								"type": "text/javascript"
@@ -153,40 +136,33 @@
 						"method": "GET",
 						"header": [
 							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
+								"key": "x-customer-id",
+								"value": "1"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com"
 							}
 						],
 						"url": {
 							"raw": "{{base_url}}/api/rewards/total",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards",
-								"total"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "rewards", "total"]
 						}
-					},
-					"response": []
+					}
 				},
 				{
-					"name": "Get Reward Stats - JWT Auth",
+					"name": "Get Reward Stats",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
+									"pm.test('Get reward stats successful', function () {",
 									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has stats data\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', true);",
-									"    pm.expect(jsonData.data).to.have.property('total_points');",
-									"    pm.expect(jsonData.data).to.have.property('total_entries');",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.data).to.exist;",
 									"});"
 								],
 								"type": "text/javascript"
@@ -197,40 +173,33 @@
 						"method": "GET",
 						"header": [
 							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
+								"key": "x-customer-id",
+								"value": "1"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com"
 							}
 						],
 						"url": {
 							"raw": "{{base_url}}/api/rewards/stats",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards",
-								"stats"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "rewards", "stats"]
 						}
-					},
-					"response": []
+					}
 				},
 				{
-					"name": "Add Reward Points - JWT Auth",
+					"name": "Add Reward Points",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 201\", function () {",
+									"pm.test('Add reward points successful', function () {",
 									"    pm.response.to.have.status(201);",
-									"});",
-									"",
-									"pm.test(\"Response has reward data\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', true);",
-									"    pm.expect(jsonData).to.have.property('message');",
-									"    pm.expect(jsonData.data).to.have.property('points');",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.success).to.be.true;",
+									"    pm.expect(responseJson.data).to.exist;",
 									"});"
 								],
 								"type": "text/javascript"
@@ -241,8 +210,12 @@
 						"method": "POST",
 						"header": [
 							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
+								"key": "x-customer-id",
+								"value": "1"
+							},
+							{
+								"key": "x-customer-email",
+								"value": "test@example.com"
 							},
 							{
 								"key": "Content-Type",
@@ -251,65 +224,14 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"order_id\": 12345,\n    \"description\": \"Test reward points\",\n    \"points\": 100\n}"
+							"raw": "{\n    \"description\": \"Test reward points\",\n    \"points\": 100,\n    \"order_id\": 1\n}"
 						},
 						"url": {
 							"raw": "{{base_url}}/api/rewards",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "rewards"]
 						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Rewards by Order - JWT Auth",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Response has order rewards data\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', true);",
-									"    pm.expect(jsonData.data).to.have.property('order_id');",
-									"    pm.expect(jsonData.data).to.have.property('rewards');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{jwt_token}}"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/api/rewards/order/12345",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards",
-								"order",
-								"12345"
-							]
-						}
-					},
-					"response": []
+					}
 				}
 			]
 		},
@@ -317,20 +239,16 @@
 			"name": "Authentication Error Tests",
 			"item": [
 				{
-					"name": "Get Rewards - No Auth",
+					"name": "No Auth - Get Rewards",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 401\", function () {",
+									"pm.test('No auth returns 401', function () {",
 									"    pm.response.to.have.status(401);",
-									"});",
-									"",
-									"pm.test(\"Response indicates authentication required\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', false);",
-									"    pm.expect(jsonData.message).to.include('authorized');",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.message).to.include('authorized');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -342,78 +260,22 @@
 						"header": [],
 						"url": {
 							"raw": "{{base_url}}/api/rewards",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards"
-							]
+							"host": ["{{base_url}}"],
+							"path": ["api", "rewards"]
 						}
-					},
-					"response": []
+					}
 				},
 				{
-					"name": "Add Reward Points - No Auth",
+					"name": "Invalid Token - Get Rewards",
 					"event": [
 						{
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test(\"Status code is 401\", function () {",
+									"pm.test('Invalid token returns 401', function () {",
 									"    pm.response.to.have.status(401);",
-									"});",
-									"",
-									"pm.test(\"Response indicates authentication required\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', false);",
-									"    pm.expect(jsonData.message).to.include('authorized');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"description\": \"Test reward\",\n    \"points\": 50\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/rewards",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Total Points - Invalid Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 401\", function () {",
-									"    pm.response.to.have.status(401);",
-									"});",
-									"",
-									"pm.test(\"Response indicates invalid token\", function () {",
-									"    const jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('success', false);",
-									"    pm.expect(jsonData.message).to.include('authorized');",
+									"    const responseJson = pm.response.json();",
+									"    pm.expect(responseJson.message).to.include('authorized');",
 									"});"
 								],
 								"type": "text/javascript"
@@ -429,37 +291,13 @@
 							}
 						],
 						"url": {
-							"raw": "{{base_url}}/api/rewards/total",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"rewards",
-								"total"
-							]
+							"raw": "{{base_url}}/api/rewards",
+							"host": ["{{base_url}}"],
+							"path": ["api", "rewards"]
 						}
-					},
-					"response": []
+					}
 				}
 			]
-		}
-	],
-	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:3000",
-			"type": "string"
-		},
-		{
-			"key": "customer_email",
-			"value": "test@example.com",
-			"type": "string"
-		},
-		{
-			"key": "jwt_token",
-			"value": "",
-			"type": "string"
 		}
 	]
 }

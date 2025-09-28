@@ -177,6 +177,8 @@ exports.confirmCheckout = async (req, res) => {
 
       // Add order products/downloads/recurring
       await orderModel.addOrderProducts(transaction, orderId, [cartItem]);
+      // Add vendor order products
+      await orderModel.addVendorOrderProducts(transaction, orderId, [cartItem]);
       if (recurringInfo) await orderModel.addOrderRecurring(transaction, orderId, recurringInfo);
       if (downloadInfo) await orderModel.addOrderDownload(transaction, orderId, downloadInfo);
 
@@ -186,6 +188,13 @@ exports.confirmCheckout = async (req, res) => {
 
       // Add totals (could break out to model function)
       await orderModel.addOrderTotals(transaction, orderId, finalTotal, courierCharge, voucherDiscount, couponDiscount, firstPurDiscount);
+      
+      // Add order history record for status tracking
+      if (payment_method.code === 'cod') {
+        await orderModel.updateOrderStatus(transaction, orderId, 2, 'Order placed with Cash On Delivery payment method');
+      } else {
+        await orderModel.updateOrderStatus(transaction, orderId, 0, 'Order created, awaiting payment');
+      }
 
       // Update stock
       await orderModel.updateProductStock(transaction, [cartItem]);

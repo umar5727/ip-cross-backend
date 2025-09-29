@@ -313,18 +313,31 @@ class HomeContentService {
           },
           {
             model: ProductSpecial,
+            as: 'ProductSpecials',
             where: {
-              [Op.and]: [
+              [Op.or]: [
                 {
-                  [Op.or]: [
+                  [Op.and]: [
                     { date_start: '0000-00-00' },
-                    { date_start: { [Op.lte]: new Date() } }
+                    { date_end: '0000-00-00' }
                   ]
                 },
                 {
-                  [Op.or]: [
-                    { date_end: '0000-00-00' },
+                  [Op.and]: [
+                    { date_start: { [Op.lte]: new Date() } },
                     { date_end: { [Op.gte]: new Date() } }
+                  ]
+                },
+                {
+                  [Op.and]: [
+                    { date_start: '0000-00-00' },
+                    { date_end: { [Op.gte]: new Date() } }
+                  ]
+                },
+                {
+                  [Op.and]: [
+                    { date_start: { [Op.lte]: new Date() } },
+                    { date_end: '0000-00-00' }
                   ]
                 }
               ]

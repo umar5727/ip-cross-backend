@@ -46,7 +46,7 @@ Category.belongsToMany(Product, {
 });
 
 // Product relationships
-Product.hasMany(ProductSpecial, { foreignKey: 'product_id' });
+Product.hasMany(ProductSpecial, { foreignKey: 'product_id', as: 'ProductSpecials' });
 ProductSpecial.belongsTo(Product, { foreignKey: 'product_id' });
 
 Product.hasMany(ProductImage, { foreignKey: 'product_id', as: 'ProductImages' });

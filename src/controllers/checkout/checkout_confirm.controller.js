@@ -16,6 +16,7 @@ const VoucherModel = require('../../models/discount/voucher.model');
 const CouponModel = require('../../models/discount/coupon.model');
 const AffiliateModel = require('../../models/affiliate/affiliate.model');
 const ReferralModel = require('../../models/marketing/referral.model');
+const razorpayUtil = require('../../utils/razorpay.util');
 // Replace above with your actual models if different
 
 exports.confirmCheckout = async (req, res) => {
@@ -207,7 +208,53 @@ exports.confirmCheckout = async (req, res) => {
     // req.session.order_ids = orderIds; // Use express-session or Redis as needed
 
     // Process payment (if needed)
-    let paymentResult = await orderModel.processPayment(transaction, payment_method, orderIds, req.body);
+    let paymentResult;
+    
+    if (payment_method.code === 'razorpay') {
+      // For Razorpay, create a payment order
+      const firstOrderId = orderIds[0]; // Use first order for Razorpay order creation
+      
+      // Get order details for the first order
+      const orderDetails = await orderModel.getOrder(firstOrderId);
+      if (!orderDetails) throw new Error('Order details not found');
+      
+      // Format order data for Razorpay
+      const razorpayOrderData = razorpayUtil.formatOrderData(orderDetails);
+      
+      try {
+        // Create Razorpay order
+        const razorpayOrder = await razorpayUtil.createOrder(razorpayOrderData);
+        
+        // Store Razorpay order info in our database
+        await orderModel.addOrderPaymentInfo(transaction, firstOrderId, {
+          payment_provider: 'razorpay',
+          payment_order_id: razorpayOrder.id,
+          payment_id: null, // Will be updated after payment completion
+          payment_status: 'created',
+          payment_error: null
+        });
+        
+        // Return success with Razorpay order details
+        paymentResult = {
+          success: true,
+          data: {
+            method: 'razorpay',
+            order_id: razorpayOrder.id,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            status: 'awaiting_payment',
+            confirmed: false,
+            key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_your_key_id'
+          }
+        };
+      } catch (error) {
+        console.error('Razorpay order creation error:', error);
+        throw new Error('Failed to create Razorpay payment order: ' + error.message);
+      }
+    } else {
+      // For other payment methods, use existing process
+      paymentResult = await orderModel.processPayment(transaction, payment_method, orderIds, req.body);
+    }
 
     // Error if payment failed
     if (!paymentResult.success) { throw new Error(paymentResult.message); }

@@ -697,6 +697,105 @@ class OrderModel {
       return { success: false, message: 'Unsupported payment method' };
     }
   }
+  
+  /**
+   * Add or update order payment information
+   * @param {Object} transaction - Database transaction
+   * @param {Number} orderId - Order ID
+   * @param {Object} paymentInfo - Payment information
+   */
+  async addOrderPaymentInfo(transaction, orderId, paymentInfo) {
+    try {
+      // Create order payment info table if it doesn't exist
+      await sequelize.query(`
+        CREATE TABLE IF NOT EXISTS oc_order_payment_info (
+          order_payment_info_id INT(11) NOT NULL AUTO_INCREMENT,
+          order_id INT(11) NOT NULL,
+          payment_provider VARCHAR(64) NOT NULL,
+          payment_order_id VARCHAR(128) DEFAULT NULL,
+          payment_id VARCHAR(128) DEFAULT NULL,
+          payment_status VARCHAR(64) NOT NULL,
+          payment_error TEXT DEFAULT NULL,
+          date_added DATETIME NOT NULL,
+          date_modified DATETIME NOT NULL,
+          PRIMARY KEY (order_payment_info_id),
+          KEY order_id (order_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+      `, { transaction });
+      
+      // Check if payment info already exists for this order
+      const [existingInfo] = await sequelize.query(
+        'SELECT * FROM oc_order_payment_info WHERE order_id = :orderId',
+        {
+          replacements: { orderId },
+          type: QueryTypes.SELECT,
+          transaction
+        }
+      );
+      
+      if (existingInfo) {
+        // Update existing payment info
+        await sequelize.query(
+          `UPDATE oc_order_payment_info SET 
+            payment_provider = :provider,
+            payment_order_id = :orderId,
+            payment_id = :paymentId,
+            payment_status = :status,
+            payment_error = :error,
+            date_modified = NOW()
+          WHERE order_id = :orderIdParam`,
+          {
+            replacements: {
+              provider: paymentInfo.payment_provider,
+              orderId: paymentInfo.payment_order_id || null,
+              paymentId: paymentInfo.payment_id || null,
+              status: paymentInfo.payment_status,
+              error: paymentInfo.payment_error || null,
+              orderIdParam: orderId
+            },
+            type: QueryTypes.UPDATE,
+            transaction
+          }
+        );
+      } else {
+        // Insert new payment info
+        await sequelize.query(
+          `INSERT INTO oc_order_payment_info (
+            order_id, payment_provider, payment_order_id, payment_id, 
+            payment_status, payment_error, date_added, date_modified
+          ) VALUES (
+            :orderId, :provider, :paymentOrderId, :paymentId, 
+            :status, :error, NOW(), NOW()
+          )`,
+          {
+            replacements: {
+              orderId,
+              provider: paymentInfo.payment_provider,
+              paymentOrderId: paymentInfo.payment_order_id || null,
+              paymentId: paymentInfo.payment_id || null,
+              status: paymentInfo.payment_status,
+              error: paymentInfo.payment_error || null
+            },
+            type: QueryTypes.INSERT,
+            transaction
+          }
+        );
+      }
+      
+      // Add entry to order history
+      await this.updateOrderStatus(
+        transaction,
+        orderId,
+        paymentInfo.payment_status === 'completed' ? 1 : 0, // 1 = Processing, 0 = Pending
+        `Payment ${paymentInfo.payment_status} via ${paymentInfo.payment_provider}`
+      );
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding order payment info:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = new OrderModel();

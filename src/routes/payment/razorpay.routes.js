@@ -1,22 +1,48 @@
 /**
- * Razorpay Payment Routes
+ * Razorpay Payment Routes with Enhanced Security
  */
 
 const express = require('express');
 const router = express.Router();
 const razorpayController = require('../../controllers/payment/razorpay.controller');
 const authMiddleware = require('../../middleware/auth.middleware');
+const securityMiddleware = require('../../middleware/security.middleware');
 
-// Create Razorpay order
-router.post('/create-order', authMiddleware.isAuthenticated, razorpayController.createOrder);
+// Apply security headers to all routes
+router.use(securityMiddleware.securityHeaders);
+router.use(securityMiddleware.requestLogger);
 
-// Verify payment
-router.post('/verify-payment', authMiddleware.isAuthenticated, razorpayController.verifyPayment);
+// Create Razorpay order with rate limiting
+router.post('/create-order', 
+  securityMiddleware.paymentRateLimit,
+  securityMiddleware.validatePaymentRequest,
+  authMiddleware.protect,
+  razorpayController.createOrder
+);
 
-// Webhook handler (no auth required as it's called by Razorpay)
-router.post('/webhook', razorpayController.webhook);
+// Verify payment with rate limiting
+router.post('/verify-payment',
+  securityMiddleware.paymentRateLimit,
+  securityMiddleware.validatePaymentRequest,
+  authMiddleware.protect,
+  razorpayController.verifyPayment
+);
 
-// Get payment details
-router.get('/payment/:payment_id', authMiddleware.isAuthenticated, razorpayController.getPaymentDetails);
+// Webhook handler with IP whitelisting and signature validation
+router.post('/webhook',
+  securityMiddleware.webhookIPWhitelist,
+  securityMiddleware.validateWebhookSignature,
+  razorpayController.handleWebhook
+);
+
+// Create refund
+router.post('/refund',
+  securityMiddleware.paymentRateLimit,
+  authMiddleware.protect,
+  razorpayController.createRefund
+);
+
+// Error handling middleware
+router.use(securityMiddleware.errorHandler);
 
 module.exports = router;

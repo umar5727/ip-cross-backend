@@ -45,6 +45,7 @@ const returnRoutes = require('./src/routes/return.routes');
 const walletRoutes = require('./src/routes/wallet.routes');
 const bannerRoutes = require('./src/routes/banner.routes');
 const razorpayRoutes = require('./src/routes/payment/razorpay.routes');
+const homeContentRoutes = require('./src/routes/home_content.routes');
 
 const allCategoriesRoutes = require('./src/routes/all_categories.routes'); //allcategories
 
@@ -71,6 +72,7 @@ app.use('/api/returns', returnRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/banners', bannerRoutes);
 app.use('/api/payment/razorpay', razorpayRoutes);
+app.use('/api/home-content', homeContentRoutes);
 
 app.use('/api/all-categories', allCategoriesRoutes); //allcategories
 

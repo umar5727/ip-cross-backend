@@ -507,6 +507,145 @@ class OrderModel {
       throw error;
     }
   }
+
+  /**
+   * Get order by ID with transaction support
+   * @param {Number} orderId - Order ID
+   * @param {Object} connection - Database connection/transaction
+   * @returns {Object} Order data
+   */
+  async getOrderById(orderId, connection = null) {
+    const order = await Order.findByPk(orderId, {
+      transaction: connection,
+      raw: true
+    });
+    return order;
+  }
+
+  /**
+   * Update order status by string status
+   * @param {Number} orderId - Order ID
+   * @param {String} status - Status string (pending, paid, processing, etc.)
+   * @param {Object} connection - Database connection/transaction
+   */
+  async updateOrderStatus(orderId, status, connection = null) {
+    const statusMap = {
+      'pending': 0,
+      'paid': 1,
+      'processing': 2,
+      'shipped': 3,
+      'delivered': 4,
+      'cancelled': 7,
+      'refunded': 11
+    };
+
+    const statusId = statusMap[status] || 0;
+    
+    await Order.update({
+      order_status_id: statusId,
+      date_modified: sequelize.literal('NOW()')
+    }, {
+      where: { order_id: orderId },
+      transaction: connection
+    });
+
+    // Add order history
+    await sequelize.query(
+      `INSERT INTO order_history SET
+      order_id = :orderId,
+      order_status_id = :statusId,
+      notify = 0,
+      comment = :comment,
+      date_added = NOW()`,
+      {
+        replacements: { 
+          orderId, 
+          statusId, 
+          comment: `Order status updated to ${status}` 
+        },
+        type: QueryTypes.INSERT,
+        transaction: connection
+      }
+    );
+  }
+
+  /**
+   * Update payment status
+   * @param {Number} orderId - Order ID
+   * @param {String} status - Payment status
+   * @param {Object} connection - Database connection/transaction
+   */
+  async updatePaymentStatus(orderId, status, connection = null) {
+    await sequelize.query(
+      `UPDATE oc_order_payment_info SET 
+        payment_status = :status,
+        date_modified = NOW()
+      WHERE order_id = :orderId`,
+      {
+        replacements: { orderId, status },
+        type: QueryTypes.UPDATE,
+        transaction: connection
+      }
+    );
+  }
+
+  /**
+   * Get order payment info
+   * @param {Number} orderId - Order ID
+   * @param {Object} connection - Database connection/transaction
+   * @returns {Object} Payment info
+   */
+  async getOrderPaymentInfo(orderId, connection = null) {
+    const [paymentInfo] = await sequelize.query(
+      'SELECT * FROM oc_order_payment_info WHERE order_id = :orderId',
+      {
+        replacements: { orderId },
+        type: QueryTypes.SELECT,
+        transaction: connection
+      }
+    );
+    return paymentInfo;
+  }
+
+  /**
+   * Update refund status
+   * @param {String} paymentId - Payment ID
+   * @param {String} status - Refund status
+   * @param {Number} amount - Refund amount
+   * @param {Object} connection - Database connection/transaction
+   */
+  async updateRefundStatus(paymentId, status, amount, connection = null) {
+    // Create refund table if it doesn't exist
+    await sequelize.query(`
+      CREATE TABLE IF NOT EXISTS oc_order_refunds (
+        refund_id INT(11) NOT NULL AUTO_INCREMENT,
+        payment_id VARCHAR(128) NOT NULL,
+        refund_status VARCHAR(64) NOT NULL,
+        refund_amount DECIMAL(15,4) NOT NULL,
+        date_added DATETIME NOT NULL,
+        date_modified DATETIME NOT NULL,
+        PRIMARY KEY (refund_id),
+        KEY payment_id (payment_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+    `, { transaction: connection });
+
+    // Insert or update refund record
+    await sequelize.query(
+      `INSERT INTO oc_order_refunds (
+        payment_id, refund_status, refund_amount, date_added, date_modified
+      ) VALUES (
+        :paymentId, :status, :amount, NOW(), NOW()
+      ) ON DUPLICATE KEY UPDATE
+        refund_status = :status,
+        refund_amount = :amount,
+        date_modified = NOW()`,
+      {
+        replacements: { paymentId, status, amount: amount / 100 },
+        type: QueryTypes.INSERT,
+        transaction: connection
+      }
+    );
+  }
   
   /**
    * Add order vendor history

@@ -54,6 +54,7 @@ class HomeContentService {
             include: [
               {
                 model: ProductSpecial,
+                as: 'ProductSpecials',
                 where: {
                   [Op.and]: [
                     {
@@ -198,6 +199,7 @@ class HomeContentService {
             },
             {
               model: ProductSpecial,
+              as: 'ProductSpecials',
               where: {
                 [Op.and]: [
                   {

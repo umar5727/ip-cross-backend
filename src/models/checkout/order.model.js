@@ -516,17 +516,25 @@ class OrderModel {
    */
   async updateProductStock(transaction, products) {
     for (const product of products) {
-      await sequelize.query(
-        'UPDATE oc_product SET quantity = quantity - :quantity WHERE product_id = :productId',
-        {
-          replacements: { 
-            quantity: product.quantity, 
-            productId: product.product_id 
-          },
-          type: QueryTypes.UPDATE,
-          transaction
-        }
-      );
+      // Only subtract stock if product has inventory tracking enabled
+      const shouldSubtract = product.product_data?.subtract !== false;
+      
+      if (shouldSubtract) {
+        await sequelize.query(
+          'UPDATE oc_product SET quantity = quantity - :quantity WHERE product_id = :productId AND subtract = 1',
+          {
+            replacements: { 
+              quantity: product.quantity, 
+              productId: product.product_id 
+            },
+            type: QueryTypes.UPDATE,
+            transaction
+          }
+        );
+        console.log(`Stock updated for product ${product.product_id}: -${product.quantity}`);
+      } else {
+        console.log(`Stock NOT updated for product ${product.product_id} (subtract disabled)`);
+      }
     }
   }
 

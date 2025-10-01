@@ -58,16 +58,23 @@ exports.confirmCheckout = async (req, res) => {
         throw new Error(`Minimum quantity for ${item.product_data.name} is ${item.product_data.minimum} (current: ${minQtyMap[item.product_id]})`);
       }
       
-      // Check product availability: status must be true (active) and quantity must be at least 1
+      // Check product availability
       console.log(`Product ${item.product_id} availability check:`, {
         name: item.product_data.name,
         status: item.product_data.status,
         stock_quantity: item.product_data.quantity,
-        status_type: typeof item.product_data.status
+        subtract: item.product_data.subtract,
+        cart_quantity: item.quantity
       });
       
-      if (!item.product_data.status || item.product_data.quantity < 1) {
-        throw new Error(`Product ${item.product_data.name} is not available (Status: ${item.product_data.status}, Stock: ${item.product_data.quantity}).`);
+      // Check 1: Product must be active (status = true/1)
+      if (!item.product_data.status) {
+        throw new Error(`Product "${item.product_data.name}" is currently inactive and cannot be purchased.`);
+      }
+      
+      // Check 2: If inventory tracking is enabled (subtract = true), check stock availability
+      if (item.product_data.subtract && item.product_data.quantity < item.quantity) {
+        throw new Error(`Product "${item.product_data.name}" has insufficient stock. Available: ${item.product_data.quantity}, Requested: ${item.quantity}.`);
       }
     }
 

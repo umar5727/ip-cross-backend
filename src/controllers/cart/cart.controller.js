@@ -159,6 +159,9 @@ exports.getCart = async (req, res) => {
         mrp: parseFloat(product.price),
         price: finalPrice,
         total: finalPrice * cartItem.quantity,
+        available_quantity: product.quantity, // Stock quantity from database
+        status: product.status, // Product status (active/inactive)
+        subtract: product.subtract, // Inventory tracking flag
         _shipping: product.shipping || 0 // Internal flag for courier charges calculation
       };
     }).filter(Boolean);

@@ -34,6 +34,7 @@
     "sanitize-html": "^2.17.0",
     "sequelize": "^6.30.0",
     "sharp": "^0.34.4",
+    "uuid": "^13.0.0",
     "validator": "^13.11.0",
     "winston": "^3.10.0"
   },

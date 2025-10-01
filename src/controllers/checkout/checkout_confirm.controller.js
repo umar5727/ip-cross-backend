@@ -4,11 +4,6 @@
  */
 
 const db = require('../../../config/database');
-// Create a connection variable that references db.connection for backward compatibility
-const connection = db.connection;
-// Debug log to check connection object
-console.log('checkout_confirm.controller.js - connection object type:', typeof connection);
-console.log('checkout_confirm.controller.js - connection has query method:', typeof connection.query === 'function');
 const orderModel = require('../../models/checkout/order.model');
 const Address = require('../../models/customer/address.model');
 const Cart = require('../../models/cart/cart.model');
@@ -20,14 +15,22 @@ const razorpayUtil = require('../../utils/razorpay.util');
 // Replace above with your actual models if different
 
 exports.confirmCheckout = async (req, res) => {
-  console.log('Starting confirmCheckout');
   const transaction = await db.transaction();
   try {
-    console.log('Transaction started');
-    const customer_id = req.user.customer_id;
+    
+    // Check if req.customer exists before accessing customer_id
+    if (!req.customer) {
+      throw new Error('User authentication required. Please login.');
+    }
+    
+    const customer_id = req.customer.customer_id;
 
     // 1. Validate input
-    const { payment_method, comment, agree_terms, address_id, shipping_address_id, alternate_mobile_number, 'gst-no': gstNo, referral_code, voucher_code, coupon_code } = req.body;
+    const { payment_method, comment, agree_terms, address_id, shipping_address_id, alternate_mobile_number, 'gst-no': gstNo, gstin: requestGstin, referral_code, voucher_code, coupon_code } = req.body;
+    
+    // Use either gstin or gst-no from the request, with fallback to empty space (not empty string)
+    // Since database has NOT NULL constraint with no default value
+    const finalGstin = (requestGstin || gstNo || ' ').toString();
     if (!payment_method || !agree_terms) throw new Error("Payment method and agreement to terms are required");
     if (!agree_terms) throw new Error("You must agree to the terms and conditions");
 
@@ -55,9 +58,16 @@ exports.confirmCheckout = async (req, res) => {
         throw new Error(`Minimum quantity for ${item.product_data.name} is ${item.product_data.minimum} (current: ${minQtyMap[item.product_id]})`);
       }
       
-      // Check product availability: status must be 1 and quantity must be at least 1
-      if (item.product_data.status !== 1 || item.product_data.quantity < 1) {
-        throw new Error(`Product ${item.product_data.name} is not available.`);
+      // Check product availability: status must be true (active) and quantity must be at least 1
+      console.log(`Product ${item.product_id} availability check:`, {
+        name: item.product_data.name,
+        status: item.product_data.status,
+        stock_quantity: item.product_data.quantity,
+        status_type: typeof item.product_data.status
+      });
+      
+      if (!item.product_data.status || item.product_data.quantity < 1) {
+        throw new Error(`Product ${item.product_data.name} is not available (Status: ${item.product_data.status}, Stock: ${item.product_data.quantity}).`);
       }
     }
 
@@ -87,6 +97,15 @@ exports.confirmCheckout = async (req, res) => {
 
     let firstProduct = true;
     for (let cartItem of cartItems) {
+      // Log price details for debugging
+      console.log(`Order pricing for product ${cartItem.product_id}:`, {
+        mrp: cartItem.product_data.mrp,
+        selling_price: cartItem.product_data.selling_price,
+        discount_price: cartItem.product_data.discount_price,
+        final_price: cartItem.product_data.price,
+        quantity: cartItem.quantity
+      });
+      
       // Base pricing calculation
       let baseTotal = cartItem.product_data.price * cartItem.quantity;
 
@@ -94,31 +113,16 @@ exports.confirmCheckout = async (req, res) => {
       let recurringInfo = cartItem.product_data.recurring ? cartItem.product_data.recurring : null;
       let downloadInfo = cartItem.product_data.download ? cartItem.product_data.download : null;
 
-      // Courier charge calc - commented out old implementation
-      /*
-      let courierCharge = 0;
-      if (cartItem.product_data.shipping === 1) {
-        const courierRes = await orderModel.getCourierCharge(cartItem.product_id, shipping_address.postcode);
-        if (courierRes.type === 'local') courierCharge = 50;
-        else if (courierRes.type === 'zonal') courierCharge = 80;
-        else if (courierRes.type === 'national') courierCharge = 120;
-      }
-      */
-      
-      // New courier charge logic - apply only to first order if shipping=1 and total<500
+      // Courier charge logic - apply only to first order if shipping=1 and total<500
       let courierCharge = 0;
       if (firstProduct && cartItem.product_data.shipping === 1 && totalSubtotal < 500) {
-        // const courierRes = await orderModel.getCourierCharge(cartItem.product_id, shipping_address.postcode);
-        // if (courierRes.type === 'local') courierCharge = 50;
-        // else if (courierRes.type === 'zonal') courierCharge = 80;
-        // else if (courierRes.type === 'national') courierCharge = 120;
-         courierCharge = 50;
+        courierCharge = 50;
       }
       // Apply only once if below threshold
-      if (firstProduct && totalSubtotal < lowOrderFeeThreshold && !lowOrderFeeApplied) {
-        baseTotal += lowOrderFeeAmount;
-        lowOrderFeeApplied = true;
-      }
+      // if (firstProduct && totalSubtotal < lowOrderFeeThreshold && !lowOrderFeeApplied) {
+      //   baseTotal += lowOrderFeeAmount;
+      //   lowOrderFeeApplied = true;
+      // }
 
       // Voucher/coupon proportional split
       let voucherDiscount = voucher ? (baseTotal / totalSubtotal) * voucher.amount : 0;
@@ -132,10 +136,13 @@ exports.confirmCheckout = async (req, res) => {
       grandTotal += finalTotal; grandCourierCharges += courierCharge;
 
       // Prepare product order data
+      const courier_charges_for_order = firstProduct ? courierCharge : 0;
+      console.log(`Setting courier charges for order: ${courier_charges_for_order} (firstProduct: ${firstProduct}, courierCharge: ${courierCharge})`);
+      
       let orderData = {
         customer_id,
         firstname: req.customer.firstname, lastname: req.customer.lastname,
-        email: req.customer.email, telephone: req.customer.telephone || '',
+        email: req.customer.email, telephone: (req.customer && req.customer.telephone) || '',
         customer_group_id: req.customer.customer_group_id,
         language_id: req.customer.language_id || 1,
         currency_id: 4,
@@ -144,19 +151,19 @@ exports.confirmCheckout = async (req, res) => {
         store_url: 'https://www.ipshopy.com/',
         date_added: new Date(),
         date_modified: new Date(),
-        total_courier_charges: firstProduct ? courierCharge : 0,
+        total_courier_charges: courier_charges_for_order,
         payment_firstname: payment_address.firstname, payment_lastname: payment_address.lastname,
         payment_address_1: payment_address.address_1, payment_address_2: payment_address.address_2 || '',
         payment_city: payment_address.city, payment_postcode: payment_address.postcode,
         payment_country: payment_address.country, payment_country_id: payment_address.country_id,
         payment_zone: payment_address.zone, payment_zone_id: payment_address.zone_id,
-        payment_telephone: payment_address.mobile_number || req.user.telephone || '',
+        payment_telephone: payment_address.mobile_number || (req.customer && req.customer.telephone) || '',
         shipping_firstname: shipping_address.firstname, shipping_lastname: shipping_address.lastname,
         shipping_address_1: shipping_address.address_1, shipping_address_2: shipping_address.address_2 || '',
         shipping_city: shipping_address.city, shipping_postcode: shipping_address.postcode,
         shipping_country: shipping_address.country, shipping_country_id: shipping_address.country_id,
         shipping_zone: shipping_address.zone, shipping_zone_id: shipping_address.zone_id,
-        shipping_telephone: shipping_address.mobile_number || req.user.telephone || '',
+        shipping_telephone: shipping_address.mobile_number || (req.customer && req.customer.telephone) || '',
         payment_method: payment_method.title || '', payment_code: payment_method.code || '',
         shipping_method: req.body.shipping_method?.title || '', shipping_code: req.body.shipping_method?.code || '',
         comment: comment || '',
@@ -166,8 +173,8 @@ exports.confirmCheckout = async (req, res) => {
         voucherDiscount, couponDiscount, firstPurDiscount, courierCharge,
         ip: req.ip, user_agent: req.headers['user-agent'],
         order_status_id: payment_method.code === 'cod' ? 2 : 0,
-        alternate_mobile_number: alternate_mobile_number || null,
-        gst_no: gstNo || null,
+        alternate_mobile: alternate_mobile_number || ' ',
+        gstin: finalGstin,
         referral_code: referral_code || '',
         affiliate_id: affiliate?.id || null,
         marketing_id: referral?.id || null
@@ -192,12 +199,16 @@ exports.confirmCheckout = async (req, res) => {
       await orderModel.addOrderTotals(transaction, orderId, finalTotal, courierCharge, voucherDiscount, couponDiscount, firstPurDiscount);
       
       // Add order history record for status tracking
-      if (payment_method.code === 'cod') {
-        await orderModel.updateOrderStatus(transaction, orderId, 2, 'Order placed with Cash On Delivery payment method');
-      } else {
-        await orderModel.updateOrderStatus(transaction, orderId, 0, 'Order created, awaiting payment');
+      try {
+        if (payment_method.code === 'cod') {
+          await orderModel.updateOrderStatus(orderId, 'processing', 'Order placed with Cash On Delivery payment method', transaction);
+        } else {
+          await orderModel.updateOrderStatus(orderId, 'pending', 'Order created, awaiting payment', transaction);
+        }
+      } catch (error) {
+        console.error('Error updating order status:', error);
+        throw error;
       }
-
       // Update stock
       await orderModel.updateProductStock(transaction, [cartItem]);
 
@@ -282,9 +293,8 @@ exports.confirmCheckout = async (req, res) => {
     // Clear cart and complete
     await Cart.clearCart(customer_id);
 
-    console.log('order created- parent_order_id is = ' );
     await transaction.commit();
-    console.log('transaction commited' );
+    
     // Success response; all business rules included
     return res.status(200).json({
       success: true,
@@ -299,6 +309,7 @@ exports.confirmCheckout = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('ERROR in checkout process:', error.message);
     await transaction.rollback();
     return res.status(500).json({ success: false, message: error.message || 'An error occurred during checkout' });
   }

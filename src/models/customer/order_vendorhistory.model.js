@@ -3,7 +3,7 @@ const sequelize = require('../../../config/database');
 
 
 const OrderVendorHistory = sequelize.define('OrderVendorHistory', {
-  order_vendor_history_id: {
+  order_vendorhistory_id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
     autoIncrement: true

@@ -3,10 +3,9 @@ const sequelize = require('../../../config/database');
 
 
 const VendorOrderProduct = sequelize.define('vendor_order_product', {
-  vendor_order_product_id: {
+  order_product_id: {
     type: DataTypes.INTEGER,
-    primaryKey: true,
-    autoIncrement: true
+    primaryKey: true
   },
   vendor_id: {
     type: DataTypes.INTEGER,
@@ -68,7 +67,8 @@ const VendorOrderProduct = sequelize.define('vendor_order_product', {
   }
 }, {
   tableName: 'oc_vendor_order_product',
-  timestamps: false
+  timestamps: false,
+  id: false // Disable default id field
 });
 
 

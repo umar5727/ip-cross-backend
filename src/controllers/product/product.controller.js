@@ -212,6 +212,7 @@ exports.getAllProducts = [
           },
           {
             model: ProductSpecial,
+            as: 'ProductSpecials',
             attributes: ['price', 'date_start', 'date_end'],
             required: false,
             where: {
@@ -404,6 +405,7 @@ exports.loadMoreProducts = [
           },
           {
             model: ProductSpecial,
+            as: 'ProductSpecials',
             attributes: ['price', 'date_start', 'date_end'],
             required: false,
             where: {
@@ -534,6 +536,7 @@ exports.getProductById = [
           },
           {
             model: ProductSpecial,
+            as: 'ProductSpecials',
             attributes: ['price', 'date_start', 'date_end'],
             required: false,
             where: {

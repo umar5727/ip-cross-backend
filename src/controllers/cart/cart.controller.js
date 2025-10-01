@@ -1,10 +1,19 @@
 const { Op } = require('sequelize');
 const { Product, Cart, ProductDescription, ProductDiscount } = require('../../models');
 const sequelize = require('../../../config/database');
+const { resizeImage } = require('../../utils/image');
 
 // Get cart contents
 exports.getCart = async (req, res) => {
   try {
+    // Log the incoming token for debugging
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader);
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      console.log('Extracted token:', token);
+    }
+    
     // Use session ID from query params
     const sessionId = req.query.session_id;
     
@@ -69,6 +78,7 @@ exports.getCart = async (req, res) => {
         },
         {
           model: sequelize.models.product_special,
+          as: 'ProductSpecials',
           required: false,
           where: {
             customer_group_id: 1, // Default customer group
@@ -94,8 +104,8 @@ exports.getCart = async (req, res) => {
       if (!product) return null;
 
       // Get the special price if available
-      const specialPrice = product.product_specials && product.product_specials.length > 0 
-        ? parseFloat(product.product_specials[0].price) 
+      const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0 
+        ? parseFloat(product.ProductSpecials[0].price) 
         : null;
       
       // Check for applicable discount based on quantity
@@ -123,16 +133,33 @@ exports.getCart = async (req, res) => {
         finalPrice = parseFloat(product.price);
       }
 
+      // Debug: Check product_description structure
+      console.log(`Product ${product.product_id} description:`, {
+        has_description: !!product.product_description,
+        is_array: Array.isArray(product.product_description),
+        length: product.product_description ? product.product_description.length : 0,
+        first_item: product.product_description && product.product_description[0] ? product.product_description[0].name : 'N/A'
+      });
+      
+      // Get product name from product_description (it's an array due to hasMany association)
+      const productName = (product.product_description && product.product_description.length > 0) 
+        ? product.product_description[0].name 
+        : product.model || `Product ${product.product_id}`;
+      
+      // Resize image to 200x200 for cart display
+      const resizedImage = resizeImage(product.image, 200, 200, true);
+
       return {
         cart_id: cartItem.cart_id,
         product_id: product.product_id,
-        name: product.product_descriptions ? product.product_descriptions.name : product.model || `Product ${product.product_id}`,
+        name: productName,
         model: product.model,
-        image: product.image,
+        image: resizedImage,
         quantity: cartItem.quantity,
         mrp: parseFloat(product.price),
         price: finalPrice,
-        total: finalPrice * cartItem.quantity
+        total: finalPrice * cartItem.quantity,
+        _shipping: product.shipping || 0 // Internal flag for courier charges calculation
       };
     }).filter(Boolean);
 
@@ -140,15 +167,37 @@ exports.getCart = async (req, res) => {
     const totalItems = cartProducts.reduce((sum, item) => sum + parseInt(item.quantity), 0);
     const totalPrice = cartProducts.reduce((sum, item) => sum + item.total, 0);
     const productCount = cartProducts.length;
+    
+    // Calculate courier charges if user is authenticated
+    let courierCharges = 0;
+    if (customerId > 0) {
+      // Apply courier charge logic: only if total < 500 and at least one product has shipping enabled
+      const hasShippingProduct = cartProducts.some(item => item._shipping === 1 || item._shipping === true);
+      if (totalPrice < 500 && hasShippingProduct) {
+        courierCharges = 50;
+      }
+    }
+    
+    // Remove internal shipping flag from response
+    cartProducts.forEach(item => delete item._shipping);
 
+    // Prepare response data
+    const responseData = {
+      products: cartProducts,
+      total: totalPrice,
+      total_items: totalItems,
+      product_count: productCount
+    };
+    
+    // Add courier charges only for authenticated users
+    if (customerId > 0) {
+      responseData.courier_charges = courierCharges;
+      responseData.grand_total = totalPrice + courierCharges;
+    }
+    
     return res.json({
       success: true,
-      data: {
-        products: cartProducts,
-        total: totalPrice,
-        total_items: totalItems,
-        product_count: productCount
-      }
+      data: responseData
     });
   } catch (error) {
     console.error('Error getting cart:', error);

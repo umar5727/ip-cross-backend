@@ -4,11 +4,12 @@
  */
 
 const sequelize = require('../../../config/database');
-const { QueryTypes, DataTypes } = require('sequelize');
+const { QueryTypes, DataTypes, Op } = require('sequelize');
 const db = require('../../../config/database');
 const VendorToProduct = require('../product/vendor_to_product.model'); //vendor to product
 const VendorOrderProduct = require('../order/vendor_order_product.model'); //vendor order product
 const OrderVendorHistory = require('../order/order_vendorhistory.model'); //order vendor history
+const { v4: uuidv4 } = require('uuid');
 
 // Define Order model
 const Order = sequelize.define('order', {
@@ -58,15 +59,18 @@ const Order = sequelize.define('order', {
   shipping_method: DataTypes.STRING,
   shipping_code: DataTypes.STRING,
   alternate_mobile: DataTypes.STRING,
-  gstin: DataTypes.STRING,
+  gstin: {
+    type: DataTypes.STRING,
+    allowNull: false,
+    defaultValue: 'NA'
+  },
   comment: DataTypes.TEXT,
   total: DataTypes.DECIMAL(15, 2),
   ip: DataTypes.STRING,
   user_agent: DataTypes.STRING,
   order_status_id: DataTypes.INTEGER,
   parent_order_id: DataTypes.INTEGER,
-  alternate_mobile_number: DataTypes.STRING,
-  gstin: DataTypes.STRING
+  alternate_mobile_number: DataTypes.STRING
 }, {
   tableName: 'oc_order',
   timestamps: false,
@@ -162,12 +166,21 @@ class OrderModel {
    * @returns {Number} Order ID
    */
   async addOrder(transaction, orderData) {
+    console.log(`Creating order with courier charges: ${orderData.total_courier_charges}, store: ${orderData.store_name}`);
+    
     const order = await Order.create({
       customer_id: orderData.customer_id,
       firstname: orderData.firstname,
       lastname: orderData.lastname,
       email: orderData.email,
       telephone: orderData.telephone,
+      customer_group_id: orderData.customer_group_id || 1,
+      language_id: orderData.language_id || 1,
+      currency_id: orderData.currency_id || 4,
+      currency_code: orderData.currency_code || 'INR',
+      store_name: orderData.store_name || 'ipshopy',
+      store_url: orderData.store_url || 'https://www.ipshopy.com/',
+      total_courier_charges: orderData.total_courier_charges || 0,
       payment_firstname: orderData.payment_firstname,
       payment_lastname: orderData.payment_lastname,
       payment_address_1: orderData.payment_address_1,
@@ -178,6 +191,7 @@ class OrderModel {
       payment_country_id: orderData.payment_country_id,
       payment_zone: orderData.payment_zone,
       payment_zone_id: orderData.payment_zone_id,
+      payment_telephone: orderData.payment_telephone,
       shipping_firstname: orderData.shipping_firstname,
       shipping_lastname: orderData.shipping_lastname,
       shipping_address_1: orderData.shipping_address_1,
@@ -188,6 +202,7 @@ class OrderModel {
       shipping_country_id: orderData.shipping_country_id,
       shipping_zone: orderData.shipping_zone,
       shipping_zone_id: orderData.shipping_zone_id,
+      shipping_telephone: orderData.shipping_telephone,
       payment_method: orderData.payment_method,
       payment_code: orderData.payment_code,
       shipping_method: orderData.shipping_method,
@@ -198,8 +213,8 @@ class OrderModel {
       user_agent: orderData.user_agent,
       order_status_id: orderData.order_status_id || 0,
       parent_order_id: orderData.parent_order_id || null,
-      alternate_mobile: orderData.alternate_mobile_number || null,
-      gstin: orderData.gst_no || null,
+      alternate_mobile: orderData.alternate_mobile || null,
+      gstin: orderData.gstin || 'NA',
       date_added: sequelize.literal('NOW()'),
       date_modified: sequelize.literal('NOW()')
     }, { transaction });
@@ -214,16 +229,25 @@ class OrderModel {
    * @param {Array} products - Order products
    */
   async addOrderProducts(transaction, orderId, products) {
-    const orderProducts = products.map(product => ({
-      order_id: orderId,
-      product_id: product.product_id,
-      name: product.product_data?.name || '',
-      model: product.product_data?.model || '',
-      quantity: product.quantity,
-      price: product.product_data?.price || 0,
-      total: product.product_data?.price * product.quantity || 0,
-      tax: product.tax || 0
-    }));
+    const orderProducts = products.map(product => {
+      const price = product.product_data?.price || 0;
+      const quantity = product.quantity;
+      const total = price * quantity;
+      
+      // Log what price is being saved to the order
+      console.log(`Saving order product - ID: ${product.product_id}, Price: ${price}, Quantity: ${quantity}, Total: ${total}`);
+      
+      return {
+        order_id: orderId,
+        product_id: product.product_id,
+        name: product.product_data?.name || '',
+        model: product.product_data?.model || '',
+        quantity: quantity,
+        price: price,
+        total: total,
+        tax: product.tax || 0
+      };
+    });
 
     await OrderProduct.bulkCreate(orderProducts, { transaction });
   }
@@ -298,7 +322,15 @@ class OrderModel {
       });
     }
 
-    await OrderTotal.bulkCreate(orderTotals, { transaction });
+    // Use direct SQL query instead of bulkCreate to avoid issues with auto-increment primary key
+    const values = orderTotals.map(total => 
+      `(${total.order_id},'${total.code}','${total.title}',${total.value},${total.sort_order})`
+    ).join(',');
+    
+    await sequelize.query(
+      `INSERT INTO \`oc_order_total\` (\`order_id\`,\`code\`,\`title\`,\`value\`,\`sort_order\`) VALUES ${values}`,
+      { type: QueryTypes.INSERT, transaction }
+    );
   }
 
   /**
@@ -316,9 +348,8 @@ class OrderModel {
       orderData = {};
     }
     
-    // Generate a unique parent_order_id (timestamp + random string)
-    const uniqueParentOrderId = new Date().toISOString().replace(/[-:T.Z]/g, '').substring(0, 14) + 
-      '-' + Math.random().toString(36).substring(2, 10);
+    // Generate a unique parent_order_id using uuidv4 instead of relying on undefined properties
+    const uniqueParentOrderId = uuidv4();
     
     // Insert parent order
     const parentOrder = await ParentOrder.create({
@@ -356,31 +387,89 @@ class OrderModel {
    * @param {Number} orderStatusId - Order status ID
    * @param {String} comment - Comment (optional)
    */
-  async updateOrderStatus(transaction, orderId, orderStatusId, comment = '') {
-    // Update order status
-    await Order.update({
-      order_status_id: orderStatusId,
-      date_modified: sequelize.literal('NOW()')
-    }, {
-      where: { order_id: orderId },
-      transaction
-    });
+ async updateOrderStatus(orderId, status, comment = '', transaction = null) {
+  const statusMap = {
+    'pending': 0,
+    'paid': 1,
+    'processing': 2,
+    'shipped': 3,
+    'delivered': 4,
+    'cancelled': 7,
+    'refunded': 11
+  };
 
-    // Add order history
-    await sequelize.query(
-      `INSERT INTO order_history SET
-      order_id = :orderId,
-      order_status_id = :orderStatusId,
-      notify = 0,
-      comment = :comment,
-      date_added = NOW()`,
-      {
-        replacements: { orderId, orderStatusId, comment },
-        type: QueryTypes.INSERT,
-        transaction
-      }
-    );
-  }
+  const statusId = statusMap[status] || 0;
+
+  // Pass transaction as option if it exists
+  const options = {
+    replacements: { orderId, statusId },
+    type: QueryTypes.UPDATE,
+  };
+  if (transaction) options.transaction = transaction;
+
+  // 1. Update main order table
+  await sequelize.query(
+    `UPDATE oc_order SET 
+      order_status_id = :statusId,
+      date_modified = NOW()
+      WHERE order_id = :orderId`,
+    options
+  );
+
+  // 2. Add order history entry
+  const historyOptions = {
+    replacements: { orderId, statusId, comment: comment || `Order status updated to ${status}` },
+    type: QueryTypes.INSERT,
+  };
+  if (transaction) historyOptions.transaction = transaction;
+
+  await sequelize.query(
+    `INSERT INTO oc_order_history
+      (order_id, order_status_id, notify, comment, date_added)
+      VALUES (:orderId, :statusId, 0, :comment, NOW())`,
+    historyOptions
+  );
+
+  // 3. Update vendor order products table
+  const vendorProductOptions = {
+    replacements: { orderId, statusId },
+    type: QueryTypes.UPDATE,
+  };
+  if (transaction) vendorProductOptions.transaction = transaction;
+
+  await sequelize.query(
+    `UPDATE oc_vendor_order_product SET 
+      order_status_id = :statusId,
+      date_modified = NOW()
+      WHERE order_id = :orderId`,
+    vendorProductOptions
+  );
+
+  // 4. Add vendor order history entries for each vendor product
+  const vendorHistoryOptions = {
+    replacements: { orderId, statusId, comment: comment || `Order status updated to ${status}` },
+    type: QueryTypes.INSERT,
+  };
+  if (transaction) vendorHistoryOptions.transaction = transaction;
+
+  await sequelize.query(
+    `INSERT INTO oc_order_vendorhistory 
+      (order_id, order_status_id, vendor_id, order_product_id, comment, date_added)
+    SELECT 
+      :orderId,
+      :statusId,
+      vendor_id,
+      order_product_id,
+      :comment,
+      NOW()
+    FROM oc_vendor_order_product
+    WHERE order_id = :orderId`,
+    vendorHistoryOptions
+  );
+
+  console.log(`Updated order status for order ${orderId} to ${status} (${statusId}) in all related tables`);
+}
+
 
   /**
    * Get order by ID
@@ -476,21 +565,28 @@ class OrderModel {
         }
 
         // Create vendor order product record
-        await VendorOrderProduct.create({
-          vendor_id: vendorProduct.vendor_id,
-          order_id: orderId,
-          order_product_id: orderProduct.order_product_id,
-          product_id: product.product_id,
-          name: product.product_data?.name || '',
-          model: product.product_data?.model || '',
-          quantity: product.quantity,
-          price: product.product_data?.price || 0,
-          total: product.product_data?.price * product.quantity || 0,
-          rewards: 0, // Default value
-          order_status_id: 0, // Default pending status
-          date_added: sequelize.literal('NOW()'),
-          date_modified: sequelize.literal('NOW()')
-        }, { transaction });
+        await sequelize.query(
+          `INSERT INTO oc_vendor_order_product 
+          (vendor_id, order_id, order_product_id, product_id, name, model, quantity, price, total, reward, order_status_id, date_added, date_modified) 
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+          {
+            replacements: [
+              vendorProduct.vendor_id,
+              orderId,
+              orderProduct.order_product_id,
+              product.product_id,
+              product.product_data?.name || '',
+              product.product_data?.model || '',
+              product.quantity,
+              product.product_data?.price || 0,
+              product.product_data?.price * product.quantity || 0,
+              0, // Default value for reward
+              0  // Default pending status
+            ],
+            type: QueryTypes.INSERT,
+            transaction
+          }
+        );
         
         // Add vendor order history record
         await this.addOrderVendorHistory(
@@ -520,53 +616,6 @@ class OrderModel {
       raw: true
     });
     return order;
-  }
-
-  /**
-   * Update order status by string status
-   * @param {Number} orderId - Order ID
-   * @param {String} status - Status string (pending, paid, processing, etc.)
-   * @param {Object} connection - Database connection/transaction
-   */
-  async updateOrderStatus(orderId, status, connection = null) {
-    const statusMap = {
-      'pending': 0,
-      'paid': 1,
-      'processing': 2,
-      'shipped': 3,
-      'delivered': 4,
-      'cancelled': 7,
-      'refunded': 11
-    };
-
-    const statusId = statusMap[status] || 0;
-    
-    await Order.update({
-      order_status_id: statusId,
-      date_modified: sequelize.literal('NOW()')
-    }, {
-      where: { order_id: orderId },
-      transaction: connection
-    });
-
-    // Add order history
-    await sequelize.query(
-      `INSERT INTO order_history SET
-      order_id = :orderId,
-      order_status_id = :statusId,
-      notify = 0,
-      comment = :comment,
-      date_added = NOW()`,
-      {
-        replacements: { 
-          orderId, 
-          statusId, 
-          comment: `Order status updated to ${status}` 
-        },
-        type: QueryTypes.INSERT,
-        transaction: connection
-      }
-    );
   }
 
   /**
@@ -658,14 +707,16 @@ class OrderModel {
    */
   async addOrderVendorHistory(transaction, orderId, orderStatusId, vendorId, orderProductId, comment) {
     try {
-      await OrderVendorHistory.create({
-        order_id: orderId,
-        order_status_id: orderStatusId,
-        vendor_id: vendorId,
-        order_product_id: orderProductId,
-        comment: comment,
-        date_added: sequelize.literal('NOW()')
-      }, { transaction });
+      await sequelize.query(
+        `INSERT INTO oc_order_vendorhistory 
+        (order_id, order_status_id, vendor_id, order_product_id, comment, date_added) 
+        VALUES (?, ?, ?, ?, ?, NOW())`,
+        {
+          replacements: [orderId, orderStatusId, vendorId, orderProductId, comment],
+          type: QueryTypes.INSERT,
+          transaction
+        }
+      );
     } catch (error) {
       console.error('Error adding order vendor history:', error);
       throw error;

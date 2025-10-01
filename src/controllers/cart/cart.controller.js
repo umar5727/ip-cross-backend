@@ -26,18 +26,43 @@ exports.getCart = async (req, res) => {
 
     // Build where clause based on available parameters
     let whereClause = {};
+    let actualSessionId = sessionId; // Store the session ID to return in response
     
     if (sessionId) {
       whereClause = { session_id: sessionId };
     } else if (customerId > 0) {
-      whereClause = { customer_id: customerId };
+      // For authenticated users, get session_id from their cart records
+      const customerCartRecord = await Cart.findOne({
+        where: { customer_id: customerId },
+        attributes: ['session_id'],
+        raw: true
+      });
+      
+      if (customerCartRecord && customerCartRecord.session_id) {
+        actualSessionId = customerCartRecord.session_id;
+        whereClause = { customer_id: customerId };
+      } else {
+        // No cart records found for this customer
+        return res.json({
+          success: true,
+          data: {
+            products: [],
+            total: 0,
+            total_items: 0,
+            product_count: 0,
+            session_id: null
+          }
+        });
+      }
     } else {
       return res.json({
         success: true,
         data: {
           products: [],
           total: 0,
-          count: 0
+          total_items: 0,
+          product_count: 0,
+          session_id: null
         }
       });
     }
@@ -55,7 +80,9 @@ exports.getCart = async (req, res) => {
         data: {
           products: [],
           total: 0,
-          total_items: 0
+          total_items: 0,
+          product_count: 0,
+          session_id: actualSessionId
         }
       });
     }
@@ -189,7 +216,8 @@ exports.getCart = async (req, res) => {
       products: cartProducts,
       total: totalPrice,
       total_items: totalItems,
-      product_count: productCount
+      product_count: productCount,
+      session_id: actualSessionId // Always include session_id in response
     };
     
     // Add courier charges only for authenticated users

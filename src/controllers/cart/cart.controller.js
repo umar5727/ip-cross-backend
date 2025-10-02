@@ -3,7 +3,6 @@ const { Product, Cart, ProductDescription, ProductDiscount } = require('../../mo
 const sequelize = require('../../../config/database');
 const { resizeImage } = require('../../utils/image');
 
-const { resizeImage } = require('../../utils/image');
 
 // Get cart contents
 exports.getCart = async (req, res) => {

@@ -1,0 +1,278 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-g7h8-i9j0-k1l2m3n4o5p6",
+    "name": "Guest Cart and Transfer",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Add Item to Guest Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"product_id\": 42,\n    \"quantity\": 1\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/cart/add",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cart",
+            "add"
+          ]
+        },
+        "description": "Add an item to the guest cart. The response will include a session_id that you should save for subsequent requests."
+      },
+      "response": []
+    },
+    {
+      "name": "2. View Guest Cart",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/cart?session_id={{session_id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cart"
+          ],
+          "query": [
+            {
+              "key": "session_id",
+              "value": "{{session_id}}"
+            }
+          ]
+        },
+        "description": "View the contents of the guest cart using the session_id."
+      },
+      "response": []
+    },
+    {
+      "name": "3. Add Another Item to Guest Cart",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"product_id\": 43,\n    \"quantity\": 2,\n    \"session_id\": \"{{session_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/cart/add",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cart",
+            "add"
+          ]
+        },
+        "description": "Add another item to the guest cart using the same session_id."
+      },
+      "response": []
+    },
+    {
+      "name": "4. User Login",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "if (jsonData.token) {",
+              "    pm.environment.set(\"token\", jsonData.token);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"user@example.com\",\n    \"password\": \"password123\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Login with user credentials. The response will include a token that will be saved to the environment variables."
+      },
+      "response": []
+    },
+    {
+      "name": "5. View User Cart (Before Transfer)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cart",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cart"
+          ]
+        },
+        "description": "View the user's cart before transferring the guest cart items."
+      },
+      "response": []
+    },
+    {
+      "name": "6. Transfer Guest Cart to User",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"session_id\": \"{{session_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/cart/transfer",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cart",
+            "transfer"
+          ]
+        },
+        "description": "Transfer the guest cart items to the logged-in user's cart."
+      },
+      "response": []
+    },
+    {
+      "name": "7. View User Cart (After Transfer)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/cart",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cart"
+          ]
+        },
+        "description": "View the user's cart after transferring the guest cart items to verify the transfer was successful."
+      },
+      "response": []
+    },
+    {
+      "name": "8. View Guest Cart (After Transfer)",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/cart?session_id={{session_id}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "cart"
+          ],
+          "query": [
+            {
+              "key": "session_id",
+              "value": "{{session_id}}"
+            }
+          ]
+        },
+        "description": "View the guest cart after transfer to verify it's now empty."
+      },
+      "response": []
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "session_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

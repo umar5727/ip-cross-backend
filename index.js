@@ -39,13 +39,12 @@ const orderHistoryRoutes = require('./src/routes/order-history.routes');
 const wishlistRoutes = require('./src/routes/wishlist.routes');
 const referralRoutes = require('./src/routes/referral/referral.routes');
 const rewardRoutes = require('./src/routes/reward.routes');
-const clickpostRoutes = require('./src/routes/clickpost.routes');
+const deliveryRoutes = require('./src/routes/clickpost.routes');
 // const deliveryRoutes = require('./src/routes/delivery.routes');
 const returnRoutes = require('./src/routes/return.routes');
 const walletRoutes = require('./src/routes/wallet.routes');
 const bannerRoutes = require('./src/routes/banner.routes');
-const razorpayRoutes = require('./src/routes/payment/razorpay.routes');
-const homeContentRoutes = require('./src/routes/home_content.routes');
+const razorpayRoutes = require('./src/routes/razorpay.routes');
 
 const allCategoriesRoutes = require('./src/routes/all_categories.routes'); //allcategories
 
@@ -66,13 +65,12 @@ app.use('/api/order-history', orderHistoryRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/referral', referralRoutes);
 app.use('/api/rewards', rewardRoutes);
-app.use('/api/clickpost', clickpostRoutes);
 // app.use('/api/delivery', deliveryRoutes);
+app.use('/api/delivery', deliveryRoutes);
 app.use('/api/returns', returnRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/banners', bannerRoutes);
-app.use('/api/payment/razorpay', razorpayRoutes);
-app.use('/api/home-content', homeContentRoutes);
+app.use('/api/razorpay', razorpayRoutes);
 
 app.use('/api/all-categories', allCategoriesRoutes); //allcategories
 

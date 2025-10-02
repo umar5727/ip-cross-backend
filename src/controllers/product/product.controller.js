@@ -208,12 +208,10 @@ exports.getAllProducts = [
               where: { language_id: languageId },
               required: false
             }],
-            required: false,
-            through: { attributes: [] }
+            required: false
           },
           {
             model: ProductSpecial,
-            as: 'ProductSpecials',
             attributes: ['price', 'date_start', 'date_end'],
             required: false,
             where: {
@@ -293,7 +291,6 @@ exports.getAllProducts = [
       // Add category filter if provided
       if (categoryId) {
         queryOptions.include[0].where = { category_id: categoryId };
-        queryOptions.include[0].required = true; // Make it an INNER JOIN to filter products
       }
 
       // Add search filter if provided
@@ -330,8 +327,8 @@ exports.getAllProducts = [
       // Format the response data to include special price (selling price) and MRP
       const formattedProducts = products.rows.map(product => {
         const productJson = product.toJSON();
-        const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0 
-          ? product.ProductSpecials[0].price 
+        const specialPrice = product.product_specials && product.product_specials.length > 0 
+          ? product.product_specials[0].price 
           : null;
         
         return {
@@ -344,11 +341,8 @@ exports.getAllProducts = [
             : null,
           description: product.product_description && product.product_description.length > 0 
             ? product.product_description[0].description 
-            : null,
-          ProductImages: product.ProductImages ? product.ProductImages.map(img => ({
-            image: img.image ? resizeImage(img.image, 150, 150, true) : null,
-            sort_order: img.sort_order || 0
-          })) : []
+            : null
+          // Removed additional images array to optimize response size
         };
       });
 
@@ -406,12 +400,10 @@ exports.loadMoreProducts = [
               where: { language_id: languageId },
               required: false
             }],
-            required: false,
-            through: { attributes: [] }
+            required: false
           },
           {
             model: ProductSpecial,
-            as: 'ProductSpecials',
             attributes: ['price', 'date_start', 'date_end'],
             required: false,
             where: {
@@ -467,7 +459,6 @@ exports.loadMoreProducts = [
       // Add category filter if provided
       if (categoryId) {
         queryOptions.include[0].where = { category_id: categoryId };
-        queryOptions.include[0].required = true; // Make it an INNER JOIN to filter products
       }
 
       // Add search filter if provided
@@ -487,8 +478,8 @@ exports.loadMoreProducts = [
       // Format the response data to include special price (selling price) and MRP
       const formattedProducts = products.rows.map(product => {
         const productJson = product.toJSON();
-        const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0 
-          ? product.ProductSpecials[0].price 
+        const specialPrice = product.product_specials && product.product_specials.length > 0 
+          ? product.product_specials[0].price 
           : null;
         
         return {
@@ -543,7 +534,6 @@ exports.getProductById = [
           },
           {
             model: ProductSpecial,
-            as: 'ProductSpecials',
             attributes: ['price', 'date_start', 'date_end'],
             required: false,
             where: {
@@ -614,8 +604,8 @@ exports.getProductById = [
 
       // Format the response data
       const productJson = product.toJSON();
-      const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0 
-        ? product.ProductSpecials[0].price 
+      const specialPrice = product.product_specials && product.product_specials.length > 0 
+        ? product.product_specials[0].price 
         : null;
       
       // Format variants with more details
@@ -733,7 +723,7 @@ description: product.product_description && product.product_description.length >
 exports.getEmiOptions = async (req, res) => {
   try {
     // Get API key from environment variables for security
-    const key_id = process.env.RAZORPAY_KEY_ID || 'rzp_live_bQbZP0Klg0VXhd'; // Fallback for development
+    const key_id = process.env.RAZORPAY_KEY_ID;
     const url = "https://api.razorpay.com/v1/methods";
     
     // Use axios for HTTP requests

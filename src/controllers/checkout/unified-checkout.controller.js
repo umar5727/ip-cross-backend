@@ -21,9 +21,6 @@ exports.processCheckout = async (req, res) => {
     return res.status(400).json({ success: false, errors: errors.array() });
   }
 
-  console.log('Starting unified checkout process');
-  console.log('Request body data:', JSON.stringify(req.body, null, 2));
-
   // Extract checkout data from request
   const {
     shipping_address_id,
@@ -231,8 +228,6 @@ exports.processCheckout = async (req, res) => {
     
   } catch (error) {
     // Rollback transaction on error
-    console.log('ERROR in unified checkout process:', error.message);
-    console.log('Rolling back transaction due to error');
     await connection.rollback();
     return res.status(500).json({
       success: false,

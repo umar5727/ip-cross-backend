@@ -377,7 +377,9 @@ exports.uploadProfileImage = async (req, res) => {
 
     // Generate unique filename
     const fileExtension = path.extname(req.file.originalname);
-    const filename = `profile_${customerId}_${Date.now()}${fileExtension}`;
+    const randomString = Math.random().toString(36).substr(2, 9);
+    const filename = `profile_${customerId}_${Date.now()}_${randomString}${fileExtension}`;
+    // const filename = `profile_${customerId}_${Date.now()}${fileExtension}`;
     const filePath = path.join(uploadDir, filename);
 
     // Move file to uploads directory

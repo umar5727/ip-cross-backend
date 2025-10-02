@@ -86,33 +86,17 @@ const AllCategories = {
   /**
    * Get product count for a category
    * @param {number} categoryId - The category ID
-   * @param {boolean} activeOnly - If true, only count products with status=1
    * @returns {Promise<number>} - Number of products in the category
    */
-  getProductCountByCategory: async (categoryId, activeOnly = false) => {
+  getProductCountByCategory: async (categoryId) => {
     try {
-      if (activeOnly) {
-        // JOIN with products table to check status=1
-        const count = await sequelize.query(`
-          SELECT COUNT(DISTINCT p.product_id) as count
-          FROM oc_product_to_category ptc
-          INNER JOIN oc_product p ON ptc.product_id = p.product_id
-          WHERE ptc.category_id = :categoryId 
-          AND p.status = 1
-        `, {
-          replacements: { categoryId },
-          type: sequelize.QueryTypes.SELECT
-        });
-        return count[0].count;
-      } else {
-        // Existing logic (unchanged for backward compatibility)
-        const count = await ProductToCategory.count({
-          where: {
-            category_id: categoryId
-          }
-        });
-        return count;
-      }
+      // Direct count without association
+      const count = await ProductToCategory.count({
+        where: {
+          category_id: categoryId
+        }
+      });
+      return count;
     } catch (error) {
       console.error('Error in getProductCountByCategory:', error);
       throw error;

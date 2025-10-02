@@ -1,0 +1,274 @@
+{
+  "info": {
+    "name": "Product API Collection",
+    "description": "Collection for product-related API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Basic Product Operations",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Product",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+            },
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"Product-123\",\n  \"sku\": \"SKU-123\",\n  \"quantity\": 100,\n  \"stock_status_id\": 1,\n  \"image\": \"catalog/products/example.jpg\",\n  \"manufacturer_id\": 1,\n  \"price\": 99.99,\n  \"status\": 1,\n  \"product_descriptions\": [\n    {\n      \"language_id\": 1,\n      \"name\": \"Example Product\",\n      \"description\": \"<p>This is an example product description.</p>\",\n      \"meta_title\": \"Example Product\"\n    }\n  ],\n  \"product_categories\": [1, 2]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/product",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"]
+            }
+          }
+        },
+        {
+          "name": "Update Product",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+            },
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 89.99,\n  \"quantity\": 150,\n  \"status\": 1,\n  \"product_descriptions\": [\n    {\n      \"language_id\": 1,\n      \"name\": \"Updated Product Name\",\n      \"description\": \"<p>This is an updated product description.</p>\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/product/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Product",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{"key": "token", "value": "{{token}}", "type": "string"}]
+            },
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/product/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product Search",
+      "item": [
+        {
+          "name": "Search Products by Keyword",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?search=example",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [{"key": "search", "value": "example"}]
+            }
+          }
+        },
+        {
+          "name": "Search Products by Category",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?category_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [{"key": "category_id", "value": "1"}]
+            }
+          }
+        },
+        {
+          "name": "Search Products by Manufacturer",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?manufacturer_id=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [{"key": "manufacturer_id", "value": "1"}]
+            }
+          }
+        },
+        {
+          "name": "Search Products by Stock Status",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?stock_status=1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [{"key": "stock_status", "value": "1"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Price Sorting",
+      "item": [
+        {
+          "name": "Sort Products by Price (Low to High)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?sort_by=price&sort_order=ASC",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [
+                {"key": "sort_by", "value": "price"},
+                {"key": "sort_order", "value": "ASC"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort Products by Price (High to Low)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?sort_by=price&sort_order=DESC",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [
+                {"key": "sort_by", "value": "price"},
+                {"key": "sort_order", "value": "DESC"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter Products by Price Range",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?price_min=10&price_max=100",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [
+                {"key": "price_min", "value": "10"},
+                {"key": "price_max", "value": "100"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Product Filters",
+      "item": [
+        {
+          "name": "Paginated Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [
+                {"key": "page", "value": "1"},
+                {"key": "limit", "value": "10"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort Products by Date (Newest First)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?sort_by=date_added&sort_order=DESC",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [
+                {"key": "sort_by", "value": "date_added"},
+                {"key": "sort_order", "value": "DESC"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort Products by Name (A-Z)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?sort_by=name&sort_order=ASC",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [
+                {"key": "sort_by", "value": "name"},
+                {"key": "sort_order", "value": "ASC"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Combined Filters Example",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/product?category_id=1&price_min=10&price_max=100&sort_by=price&sort_order=ASC",
+              "host": ["{{base_url}}"],
+              "path": ["api", "product"],
+              "query": [
+                {"key": "category_id", "value": "1"},
+                {"key": "price_min", "value": "10"},
+                {"key": "price_max", "value": "100"},
+                {"key": "sort_by", "value": "price"},
+                {"key": "sort_order", "value": "ASC"}
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

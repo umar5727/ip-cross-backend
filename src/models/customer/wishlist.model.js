@@ -107,15 +107,16 @@ Wishlist.getWishlistWithProducts = async function(customerId) {
       try {
         console.log(`Getting product details for product ${item.product_id}`);
         
-        // Use the exact same query structure as the working popular products
+        // Get product data including main image and additional images
         const productData = await sequelize.query(`
           SELECT 
             p.model,
             p.sku,
             p.price,
             p.date_available,
+            p.image as main_image,
             pd.name,
-            pi.image
+            pi.image as additional_image
           FROM oc_product p
           LEFT JOIN oc_product_description pd ON p.product_id = pd.product_id AND pd.language_id = 1
           LEFT JOIN oc_product_image pi ON p.product_id = pi.product_id AND pi.sort_order = 0
@@ -130,6 +131,8 @@ Wishlist.getWishlistWithProducts = async function(customerId) {
         if (productData && productData.length > 0) {
           const product = productData[0];
           console.log(`Found product data for ${item.product_id}:`, product.name);
+          // Use main_image first, fallback to additional_image if main_image is not available
+          const productImage = product.main_image || product.additional_image || null;
           results.push({
             customer_id: item.customer_id,
             product_id: item.product_id,
@@ -140,7 +143,7 @@ Wishlist.getWishlistWithProducts = async function(customerId) {
             price: product.price ? parseFloat(product.price) : 0,
             special: null,
             date_available: product.date_available || null,
-            image: product.image || null
+            image: productImage
           });
         } else {
           console.log(`No product data found for ${item.product_id}, using fallback`);
@@ -261,7 +264,7 @@ Wishlist.getPopularWishlistProducts = async function(limit = 10) {
         NULL as special,
         p.status,
         pd.name,
-        pi.image
+        COALESCE(p.image, pi.image) as image
       FROM oc_customer_wishlist w
       LEFT JOIN oc_product p ON w.product_id = p.product_id
       LEFT JOIN oc_product_description pd ON w.product_id = pd.product_id AND pd.language_id = 1

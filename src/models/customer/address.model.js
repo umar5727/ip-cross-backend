@@ -300,8 +300,26 @@ Address.getDefaultAddress = async function(customerId) {
         customer_id: customerId
       }
     });
+    
+    if (!defaultAddress) {
+      return null;
+    }
 
-    return defaultAddress;
+    const countryInfo = await this.getCountryInfo(defaultAddress.country_id);
+    const zoneInfo = await this.getZoneInfo(defaultAddress.zone_id);
+
+    const addressData = defaultAddress.toJSON();
+    
+    return {
+      ...addressData,
+      country: countryInfo ? countryInfo.name : '',
+      iso_code_2: countryInfo ? countryInfo.iso_code_2 : '',
+      iso_code_3: countryInfo ? countryInfo.iso_code_3 : '',
+      address_format: countryInfo ? countryInfo.address_format : '',
+      zone: zoneInfo ? zoneInfo.name : '',
+      zone_code: zoneInfo ? zoneInfo.code : '',
+      custom_field: addressData.custom_field ? JSON.parse(addressData.custom_field) : {}
+    };
   } catch (error) {
     console.error('Error getting default address:', error);
     throw error;
@@ -358,7 +376,7 @@ Address.getCountryInfo = async function(countryId) {
         type: sequelize.QueryTypes.SELECT
       }
     );
-    return results;
+    return results.length > 0 ? results[0] : null;
   } catch (error) {
     console.error('Error getting country info:', error);
     return null;
@@ -374,7 +392,7 @@ Address.getZoneInfo = async function(zoneId) {
         type: sequelize.QueryTypes.SELECT
       }
     );
-    return results;
+    return results.length > 0 ? results[0] : null;
   } catch (error) {
     console.error('Error getting zone info:', error);
     return null;

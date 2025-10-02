@@ -2,6 +2,8 @@ const { Op } = require('sequelize');
 const { Product, Cart, ProductDescription, ProductDiscount } = require('../../models');
 const sequelize = require('../../../config/database');
 
+const { resizeImage } = require('../../utils/image');
+
 // Get cart contents
 exports.getCart = async (req, res) => {
   try {
@@ -128,7 +130,7 @@ exports.getCart = async (req, res) => {
         product_id: product.product_id,
         name: product.product_descriptions ? product.product_descriptions.name : product.model || `Product ${product.product_id}`,
         model: product.model,
-        image: product.image,
+        image: product.image ? resizeImage(product.image, 200, 200, true) : null,
         quantity: cartItem.quantity,
         mrp: parseFloat(product.price),
         price: finalPrice,

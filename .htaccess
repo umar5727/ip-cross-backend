@@ -1,0 +1,22 @@
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION BEGIN
+PassengerAppRoot "/home/ipshopy2/cross-platform.ipshopy.com"
+PassengerBaseURI "/"
+PassengerNodejs "/home/ipshopy2/nodevenv/cross-platform.ipshopy.com/20/bin/node"
+PassengerAppType node
+PassengerStartupFile index.js
+# DO NOT REMOVE. CLOUDLINUX PASSENGER CONFIGURATION END
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION BEGIN
+<IfModule Litespeed>
+SetEnv DB_HOST localhost
+SetEnv DB_PASSWORD Masuk123!#
+SetEnv DB_PORT 3306
+SetEnv DB_USER ipshopy2_ip2024nw
+SetEnv JWT_EXPIRES_IN 24h
+SetEnv JWT_SECRET Tc7QBlpX+hI0YF3qVcK/ooGfO2aojZNG4leczVXX+jeiSykTYwttFfsuubb+sDNG7d+fhUyp6cQzZGnLV1cK+Q==
+SetEnv NODE_ENV Production
+SetEnv PORT 3000
+SetEnv REDIS_HOST 127.0.0.1
+SetEnv REDIS_PORT 6379
+SetEnv DB_NAME ipshopy2_dev_ipshopy
+</IfModule>
+# DO NOT REMOVE OR MODIFY. CLOUDLINUX ENV VARS CONFIGURATION END

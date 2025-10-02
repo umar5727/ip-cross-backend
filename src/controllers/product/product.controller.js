@@ -723,7 +723,7 @@ description: product.product_description && product.product_description.length >
 exports.getEmiOptions = async (req, res) => {
   try {
     // Get API key from environment variables for security
-    const key_id = process.env.RAZORPAY_KEY_ID || 'rzp_live_bQbZP0Klg0VXhd'; // Fallback for development
+    const key_id = process.env.RAZORPAY_KEY_ID;
     const url = "https://api.razorpay.com/v1/methods";
     
     // Use axios for HTTP requests

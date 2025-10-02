@@ -86,6 +86,15 @@ const Customer = sequelize.define('customer', {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW
+  },
+    address_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    field: 'address_id',
+    references: {
+      model: 'oc_address',
+      key: 'address_id'
+    }
   }
 }, {
   tableName: 'oc_customer',

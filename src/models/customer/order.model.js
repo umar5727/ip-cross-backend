@@ -207,6 +207,14 @@ const Order = sequelize.define('order', {
     allowNull: true,
     defaultValue: 0.0000
   },
+   courier_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  courier_name: {
+    type: DataTypes.STRING(100),
+    allowNull: true
+  },
   affiliate_id: {
     type: DataTypes.INTEGER,
     allowNull: false,

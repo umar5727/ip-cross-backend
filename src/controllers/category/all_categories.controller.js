@@ -101,7 +101,7 @@ async function getCategoriesData(groupIds, languageId) {
             if (productCount > 0) {
               childrenList.push({
                 name: child.name,
-                thumb: child.image ? resizeImage(child.image, 100, 100) : 'placeholder.png',
+                thumb: child.image ? resizeImage(child.image, 100, 100,true) : 'placeholder.png',
                 href: `/product/category?path=${sub.category_id}_${child.category_id}`
               });
             }
@@ -124,7 +124,7 @@ async function getCategoriesData(groupIds, languageId) {
           if (productCount > 0) {
             childrenList.push({
               name: child.name,
-              thumb: child.image ? resizeImage(child.image, 100, 100) : 'placeholder.png',
+              thumb: child.image ? resizeImage(child.image, 100, 100,true) : 'placeholder.png',
               href: `/product/category?path=${gid}_${child.category_id}`
             });
           }

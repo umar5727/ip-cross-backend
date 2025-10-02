@@ -1,45 +1,79 @@
 const { Op } = require('sequelize');
 const { Product, Cart, ProductDescription, ProductDiscount } = require('../../models');
 const sequelize = require('../../../config/database');
+const { resizeImage } = require('../../utils/image');
 
 const { resizeImage } = require('../../utils/image');
 
 // Get cart contents
 exports.getCart = async (req, res) => {
   try {
+    // Log the incoming token for debugging
+    const authHeader = req.headers.authorization;
+    console.log('Authorization header:', authHeader);
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      console.log('Extracted token:', token);
+    }
+
     // Use session ID from query params
     const sessionId = req.query.session_id;
-    
+
     // Extract customer ID from authenticated user
     const customerId = req.user ? req.user.customer_id : 0;
     const languageId = parseInt(req.query.language_id) || 1;
-    
+
     console.log('Getting cart with sessionId:', sessionId);
     console.log('Customer ID:', customerId);
 
     // Build where clause based on available parameters
     let whereClause = {};
-    
+    let actualSessionId = sessionId; // Store the session ID to return in response
+
     if (sessionId) {
       whereClause = { session_id: sessionId };
     } else if (customerId > 0) {
-      whereClause = { customer_id: customerId };
+      // For authenticated users, get session_id from their cart records
+      const customerCartRecord = await Cart.findOne({
+        where: { customer_id: customerId },
+        attributes: ['session_id'],
+        raw: true
+      });
+
+      if (customerCartRecord && customerCartRecord.session_id) {
+        actualSessionId = customerCartRecord.session_id;
+        whereClause = { customer_id: customerId };
+      } else {
+        // No cart records found for this customer
+        return res.json({
+          success: true,
+          data: {
+            products: [],
+            total: 0,
+            total_items: 0,
+            product_count: 0,
+            session_id: null
+          }
+        });
+      }
     } else {
       return res.json({
         success: true,
         data: {
           products: [],
           total: 0,
-          count: 0
+          total_items: 0,
+          product_count: 0,
+          session_id: null
         }
       });
     }
-    
+
     console.log('Where clause for cart query:', JSON.stringify(whereClause));
-    
+
     // Get cart items using Sequelize
     const cartItems = await Cart.findAll({ where: whereClause });
-    
+
     console.log('Cart items found with Sequelize:', cartItems.length);
 
     if (!cartItems.length) {
@@ -48,7 +82,9 @@ exports.getCart = async (req, res) => {
         data: {
           products: [],
           total: 0,
-          total_items: 0
+          total_items: 0,
+          product_count: 0,
+          session_id: actualSessionId
         }
       });
     }
@@ -56,7 +92,7 @@ exports.getCart = async (req, res) => {
     // Get product details for cart items
     const productIds = cartItems.map(item => item.product_id);
     console.log('Product IDs to fetch:', productIds);
-    
+
     const products = await Product.findAll({
       where: {
         product_id: { [Op.in]: productIds }
@@ -71,11 +107,12 @@ exports.getCart = async (req, res) => {
         },
         {
           model: sequelize.models.product_special,
+          as: 'ProductSpecials',
           required: false,
           where: {
             customer_group_id: 1, // Default customer group
             date_start: { [Op.lte]: new Date() },
-            date_end: { 
+            date_end: {
               [Op.or]: [
                 { [Op.gte]: new Date() },
                 { [Op.eq]: '0000-00-00' }
@@ -87,7 +124,7 @@ exports.getCart = async (req, res) => {
         }
       ]
     });
-    
+
     console.log('Products found:', products.length, 'out of', productIds.length, 'requested');
 
     // Map products to cart items with quantity
@@ -96,10 +133,10 @@ exports.getCart = async (req, res) => {
       if (!product) return null;
 
       // Get the special price if available
-      const specialPrice = product.product_specials && product.product_specials.length > 0 
-        ? parseFloat(product.product_specials[0].price) 
+      const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0
+        ? parseFloat(product.ProductSpecials[0].price)
         : null;
-      
+
       // Check for applicable discount based on quantity
       let discountPrice = null;
       if (product.product_discounts && product.product_discounts.length > 0) {
@@ -109,12 +146,12 @@ exports.getCart = async (req, res) => {
           const maxQuantity = parseInt(discount.max_quantity) || 999999;
           return cartItem.quantity >= minQuantity && cartItem.quantity <= maxQuantity;
         });
-        
+
         if (applicableDiscount) {
           discountPrice = parseFloat(applicableDiscount.price);
         }
       }
-      
+
       // Apply price hierarchy: discount > special > regular price
       let finalPrice;
       if (discountPrice !== null) {
@@ -125,16 +162,36 @@ exports.getCart = async (req, res) => {
         finalPrice = parseFloat(product.price);
       }
 
+      // Debug: Check product_description structure
+      console.log(`Product ${product.product_id} description:`, {
+        has_description: !!product.product_description,
+        is_array: Array.isArray(product.product_description),
+        length: product.product_description ? product.product_description.length : 0,
+        first_item: product.product_description && product.product_description[0] ? product.product_description[0].name : 'N/A'
+      });
+
+      // Get product name from product_description (it's an array due to hasMany association)
+      const productName = (product.product_description && product.product_description.length > 0)
+        ? product.product_description[0].name
+        : product.model || `Product ${product.product_id}`;
+
+      // Resize image to 200x200 for cart display
+      const resizedImage = product.image ? resizeImage(product.image, 200, 200, true) : null;
+
       return {
         cart_id: cartItem.cart_id,
         product_id: product.product_id,
-        name: product.product_descriptions ? product.product_descriptions.name : product.model || `Product ${product.product_id}`,
+        name: productName,
         model: product.model,
-        image: product.image ? resizeImage(product.image, 200, 200, true) : null,
+        image: resizedImage,
         quantity: cartItem.quantity,
         mrp: parseFloat(product.price),
         price: finalPrice,
-        total: finalPrice * cartItem.quantity
+        total: finalPrice * cartItem.quantity,
+        available_quantity: product.quantity, // Stock quantity from database
+        status: product.status, // Product status (active/inactive)
+        subtract: product.subtract, // Inventory tracking flag
+        _shipping: product.shipping || 0 // Internal flag for courier charges calculation
       };
     }).filter(Boolean);
 
@@ -143,14 +200,37 @@ exports.getCart = async (req, res) => {
     const totalPrice = cartProducts.reduce((sum, item) => sum + item.total, 0);
     const productCount = cartProducts.length;
 
+    // Calculate courier charges if user is authenticated
+    let courierCharges = 0;
+    if (customerId > 0) {
+      // Apply courier charge logic: only if total < 500 and at least one product has shipping enabled
+      const hasShippingProduct = cartProducts.some(item => item._shipping === 1 || item._shipping === true);
+      if (totalPrice < 500 && hasShippingProduct) {
+        courierCharges = 50;
+      }
+    }
+
+    // Remove internal shipping flag from response
+    cartProducts.forEach(item => delete item._shipping);
+
+    // Prepare response data
+    const responseData = {
+      products: cartProducts,
+      total: totalPrice,
+      total_items: totalItems,
+      product_count: productCount,
+      session_id: actualSessionId // Always include session_id in response
+    };
+
+    // Add courier charges only for authenticated users
+    if (customerId > 0) {
+      responseData.courier_charges = courierCharges;
+      responseData.grand_total = totalPrice + courierCharges;
+    }
+
     return res.json({
       success: true,
-      data: {
-        products: cartProducts,
-        total: totalPrice,
-        total_items: totalItems,
-        product_count: productCount
-      }
+      data: responseData
     });
   } catch (error) {
     console.error('Error getting cart:', error);
@@ -166,21 +246,21 @@ exports.getCart = async (req, res) => {
 exports.addToCart = async (req, res) => {
   try {
     const { product_id, quantity = 1, session_id } = req.body;
-    
+
     // Get customer ID if user is logged in
     const customerId = req.user ? req.user.customer_id : 0;
-    
+
     // Use session_id from request body if provided, otherwise generate a new one
     let sessionId = session_id;
     if (!sessionId) {
       // Generate a clean session ID (timestamp + random string)
       sessionId = Date.now().toString() + Math.random().toString(36).substring(2, 15);
     }
-    
+
     console.log('Adding to cart - Session ID:', sessionId);
     console.log('Adding to cart - Customer ID:', customerId);
     console.log('Adding to cart - Product ID:', product_id);
-    
+
     // Validate product exists and is active
     const product = await Product.findByPk(product_id);
     if (!product || !product.status) {
@@ -192,7 +272,7 @@ exports.addToCart = async (req, res) => {
 
     // Check if product already in cart - with proper session ID handling
     let whereClause = { product_id };
-    
+
     if (customerId > 0) {
       // For logged-in users, find by customer ID
       whereClause.customer_id = customerId;
@@ -201,7 +281,7 @@ exports.addToCart = async (req, res) => {
       whereClause.session_id = sessionId;
       whereClause.customer_id = 0;
     }
-    
+
     const existingCartItem = await Cart.findOne({ where: whereClause });
 
     if (existingCartItem) {
@@ -254,7 +334,7 @@ exports.updateCart = async (req, res) => {
     const whereClause = {
       product_id
     };
-    
+
     // Add session or customer condition
     if (customerId > 0) {
       whereClause.customer_id = customerId;
@@ -308,7 +388,7 @@ exports.removeFromCart = async (req, res) => {
     const { product_id } = req.body;
     const sessionId = req.body.session_id || req.query.session_id;
     const customerId = req.user ? req.user.customer_id : 0;
-    
+
     if (!product_id) {
       return res.status(400).json({
         success: false,
@@ -318,7 +398,7 @@ exports.removeFromCart = async (req, res) => {
 
     // Build where clause based on available identifiers
     const whereClause = { product_id };
-    
+
     if (customerId > 0) {
       whereClause.customer_id = customerId;
     } else if (sessionId) {
@@ -362,13 +442,13 @@ exports.clearCart = async (req, res) => {
   try {
     const sessionId = req.body.session_id || req.query.session_id;
     const customerId = req.user ? req.user.customer_id : 0;
-    
+
     console.log('Clear cart - Session ID:', sessionId);
     console.log('Clear cart - Customer ID:', customerId);
 
     // Build where clause based on available identifiers
     let whereClause = {};
-    
+
     if (customerId > 0) {
       whereClause.customer_id = customerId;
     } else if (sessionId) {
@@ -403,16 +483,16 @@ exports.transferGuestCart = async (req, res) => {
   try {
     const { session_id } = req.body;
     const customerId = req.user.customer_id;
-    
+
     if (!session_id || !customerId) {
       return res.status(400).json({
         success: false,
         message: 'Session ID and customer ID are required'
       });
     }
-    
+
     console.log(`Transferring cart from session ${session_id} to customer ${customerId}`);
-    
+
     // Get guest cart items
     const guestCartItems = await Cart.findAll({
       where: {
@@ -420,7 +500,7 @@ exports.transferGuestCart = async (req, res) => {
         customer_id: 0
       }
     });
-    
+
     if (!guestCartItems.length) {
       return res.json({
         success: true,
@@ -428,20 +508,20 @@ exports.transferGuestCart = async (req, res) => {
         transferred: 0
       });
     }
-    
+
     // Get user's existing cart items
     const userCartItems = await Cart.findAll({
       where: {
         customer_id: customerId
       }
     });
-    
+
     // Process each guest cart item
     let transferCount = 0;
     for (const guestItem of guestCartItems) {
       // Check if product already exists in user's cart
       const existingItem = userCartItems.find(item => item.product_id === guestItem.product_id);
-      
+
       if (existingItem) {
         // Update quantity if product already in user's cart
         await Cart.update(
@@ -458,15 +538,15 @@ exports.transferGuestCart = async (req, res) => {
           date_added: new Date()
         });
       }
-      
+
       // Delete the guest cart item
       await Cart.destroy({
         where: { cart_id: guestItem.cart_id }
       });
-      
+
       transferCount++;
     }
-    
+
     return res.json({
       success: true,
       message: `Successfully transferred ${transferCount} items to your cart`,

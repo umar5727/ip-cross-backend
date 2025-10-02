@@ -97,12 +97,12 @@ async function getCategoriesData(groupIds, languageId) {
           const childrenList = [];
 
           for (const child of subSubcategories) {
-            const productCount = await AllCategoriesModel.getProductCountByCategory(child.category_id);
+            const productCount = await AllCategoriesModel.getProductCountByCategory(child.category_id, true);
             if (productCount > 0) {
               childrenList.push({
                 name: child.name,
-                thumb: child.image ? resizeImage(child.image, 100, 100,true) : 'placeholder.png',
-                href: `/product/category?path=${sub.category_id}_${child.category_id}`
+                thumb: child.image ? resizeImage(child.image, 100, 100, true) : 'placeholder.png',
+                category_id: child.category_id
               });
             }
           }
@@ -120,12 +120,12 @@ async function getCategoriesData(groupIds, languageId) {
         const childrenList = [];
 
         for (const child of children) {
-          const productCount = await AllCategoriesModel.getProductCountByCategory(child.category_id);
+          const productCount = await AllCategoriesModel.getProductCountByCategory(child.category_id, true);
           if (productCount > 0) {
             childrenList.push({
               name: child.name,
-              thumb: child.image ? resizeImage(child.image, 100, 100,true) : 'placeholder.png',
-              href: `/product/category?path=${gid}_${child.category_id}`
+              thumb: child.image ? resizeImage(child.image, 100, 100, true) : 'placeholder.png',
+              category_id: child.category_id
             });
           }
         }

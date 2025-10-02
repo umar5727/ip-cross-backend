@@ -1,0 +1,238 @@
+{
+  "info": {
+    "_postman_id": "a8f5e3c7-6b2d-4e8f-9a1c-f5d8b3e7c9a0",
+    "name": "Home Content API",
+    "description": "Collection for testing the Home Content API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Home Content",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/home",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "home"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1",
+              "description": "Page number (default: 1)",
+              "disabled": true
+            },
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Number of items per page (default: 10)",
+              "disabled": true
+            }
+          ]
+        },
+        "description": "Get home content for mobile application"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/home",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "home"
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"category_id\": 1,\n            \"name\": \"Electronics\",\n            \"image\": \"catalog/categories/electronics.jpg\",\n            \"products\": [\n                {\n                    \"product_id\": 101,\n                    \"name\": \"Smartphone X\",\n                    \"image\": \"catalog/products/smartphone_x.jpg\",\n                    \"price\": 12999,\n                    \"special\": 11999,\n                    \"rating\": 4.5,\n                    \"date_added\": \"2023-01-15T10:30:00.000Z\"\n                },\n                {\n                    \"product_id\": 102,\n                    \"name\": \"Laptop Pro\",\n                    \"image\": \"catalog/products/laptop_pro.jpg\",\n                    \"price\": 49999,\n                    \"special\": null,\n                    \"rating\": 4.8,\n                    \"date_added\": \"2023-01-10T14:20:00.000Z\"\n                }\n            ]\n        },\n        {\n            \"category_id\": 2,\n            \"name\": \"Fashion\",\n            \"image\": \"catalog/categories/fashion.jpg\",\n            \"products\": [\n                {\n                    \"product_id\": 201,\n                    \"name\": \"Men's T-Shirt\",\n                    \"image\": \"catalog/products/mens_tshirt.jpg\",\n                    \"price\": 599,\n                    \"special\": 499,\n                    \"rating\": 4.2,\n                    \"date_added\": \"2023-01-20T09:15:00.000Z\"\n                }\n            ]\n        }\n    ]\n}"
+        },
+        {
+          "name": "Error Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/home",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "home"
+              ]
+            }
+          },
+          "status": "Internal Server Error",
+          "code": 500,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": false,\n    \"message\": \"Failed to fetch home content\"\n}"
+        }
+      ]
+    },
+    {
+      "name": "Load More Content",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/home/load-more?page=2&limit=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "home",
+            "load-more"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "2",
+              "description": "Page number (default: 1)"
+            },
+            {
+              "key": "limit",
+              "value": "10",
+              "description": "Number of items per page (default: 10)"
+            }
+          ]
+        },
+        "description": "Load more content for infinite scrolling in mobile application"
+      },
+      "response": [
+        {
+          "name": "Success Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/home/load-more?page=2&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "home",
+                "load-more"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "OK",
+          "code": 200,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": true,\n    \"data\": [\n        {\n            \"category_id\": 3,\n            \"name\": \"Home & Kitchen\",\n            \"image\": \"catalog/categories/home_kitchen.jpg\",\n            \"products\": [\n                {\n                    \"product_id\": 301,\n                    \"name\": \"Coffee Maker\",\n                    \"image\": \"catalog/products/coffee_maker.jpg\",\n                    \"price\": 2499,\n                    \"special\": 1999,\n                    \"rating\": 4.6,\n                    \"date_added\": \"2023-01-18T11:45:00.000Z\"\n                },\n                {\n                    \"product_id\": 302,\n                    \"name\": \"Microwave Oven\",\n                    \"image\": \"catalog/products/microwave.jpg\",\n                    \"price\": 8999,\n                    \"special\": null,\n                    \"rating\": 4.3,\n                    \"date_added\": \"2023-01-12T16:30:00.000Z\"\n                }\n            ]\n        },\n        {\n            \"category_id\": 4,\n            \"name\": \"Books\",\n            \"image\": \"catalog/categories/books.jpg\",\n            \"products\": [\n                {\n                    \"product_id\": 401,\n                    \"name\": \"Programming Guide\",\n                    \"image\": \"catalog/products/programming_book.jpg\",\n                    \"price\": 899,\n                    \"special\": 799,\n                    \"rating\": 4.7,\n                    \"date_added\": \"2023-01-22T08:20:00.000Z\"\n                }\n            ]\n        }\n    ],\n    \"page\": 2,\n    \"hasMore\": false\n}"
+        },
+        {
+          "name": "Error Response",
+          "originalRequest": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/home/load-more?page=2&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "home",
+                "load-more"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "2"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "status": "Internal Server Error",
+          "code": 500,
+          "_postman_previewlanguage": "json",
+          "header": [
+            {
+              "key": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "cookie": [],
+          "body": "{\n    \"success\": false,\n    \"message\": \"Failed to load more content\"\n}"
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

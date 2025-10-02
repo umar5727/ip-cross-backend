@@ -208,7 +208,8 @@ exports.getAllProducts = [
               where: { language_id: languageId },
               required: false
             }],
-            required: false
+            required: false,
+            through: { attributes: [] }
           },
           {
             model: ProductSpecial,
@@ -292,6 +293,7 @@ exports.getAllProducts = [
       // Add category filter if provided
       if (categoryId) {
         queryOptions.include[0].where = { category_id: categoryId };
+        queryOptions.include[0].required = true; // Make it an INNER JOIN to filter products
       }
 
       // Add search filter if provided
@@ -328,8 +330,8 @@ exports.getAllProducts = [
       // Format the response data to include special price (selling price) and MRP
       const formattedProducts = products.rows.map(product => {
         const productJson = product.toJSON();
-        const specialPrice = product.product_specials && product.product_specials.length > 0 
-          ? product.product_specials[0].price 
+        const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0 
+          ? product.ProductSpecials[0].price 
           : null;
         
         return {
@@ -342,8 +344,11 @@ exports.getAllProducts = [
             : null,
           description: product.product_description && product.product_description.length > 0 
             ? product.product_description[0].description 
-            : null
-          // Removed additional images array to optimize response size
+            : null,
+          ProductImages: product.ProductImages ? product.ProductImages.map(img => ({
+            image: img.image ? resizeImage(img.image, 150, 150, true) : null,
+            sort_order: img.sort_order || 0
+          })) : []
         };
       });
 
@@ -401,7 +406,8 @@ exports.loadMoreProducts = [
               where: { language_id: languageId },
               required: false
             }],
-            required: false
+            required: false,
+            through: { attributes: [] }
           },
           {
             model: ProductSpecial,
@@ -461,6 +467,7 @@ exports.loadMoreProducts = [
       // Add category filter if provided
       if (categoryId) {
         queryOptions.include[0].where = { category_id: categoryId };
+        queryOptions.include[0].required = true; // Make it an INNER JOIN to filter products
       }
 
       // Add search filter if provided
@@ -480,8 +487,8 @@ exports.loadMoreProducts = [
       // Format the response data to include special price (selling price) and MRP
       const formattedProducts = products.rows.map(product => {
         const productJson = product.toJSON();
-        const specialPrice = product.product_specials && product.product_specials.length > 0 
-          ? product.product_specials[0].price 
+        const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0 
+          ? product.ProductSpecials[0].price 
           : null;
         
         return {
@@ -607,8 +614,8 @@ exports.getProductById = [
 
       // Format the response data
       const productJson = product.toJSON();
-      const specialPrice = product.product_specials && product.product_specials.length > 0 
-        ? product.product_specials[0].price 
+      const specialPrice = product.ProductSpecials && product.ProductSpecials.length > 0 
+        ? product.ProductSpecials[0].price 
         : null;
       
       // Format variants with more details

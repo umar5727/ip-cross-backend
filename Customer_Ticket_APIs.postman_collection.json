@@ -1,0 +1,685 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "Customer Ticket APIs - Node.js",
+		"description": "Complete collection of customer-side ticket management APIs for the Node.js backend. This collection mirrors the OpenCart ticket functionality with modern REST API endpoints.\n\nBase URL: http://localhost:3000\n\n**Authentication Required:** Most endpoints require JWT token in Authorization header (except categories endpoint).\n\n**Features:**\n- Create tickets with file uploads\n- List and filter tickets by status/ID\n- View ticket details with replies\n- Add replies to tickets\n- Update ticket status\n- Get available categories",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login Customer",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"customer@example.com\",\n  \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login to get JWT token for authenticated requests"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints to get JWT token"
+		},
+		{
+			"name": "Ticket Categories",
+			"item": [
+				{
+					"name": "Get Ticket Categories",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/tickets/categories",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets",
+								"categories"
+							]
+						},
+						"description": "Get all available ticket categories. This is a public endpoint that doesn't require authentication.\n\nReturns the same 6 categories used in OpenCart:\n1. Order Issues\n2. Payment and Billing Issues\n3. Shipping and Delivery\n4. Product or Service Inquiries\n5. Returns and Exchanges\n6. Others"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/tickets/categories",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"tickets",
+										"categories"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"categories\": {\n    \"1\": \"Order Issues\",\n    \"2\": \"Payment and Billing Issues\",\n    \"3\": \"Shipping and Delivery\",\n    \"4\": \"Product or Service Inquiries\",\n    \"5\": \"Returns and Exchanges\",\n    \"6\": \"Others\"\n  }\n}"
+						}
+					]
+				}
+			],
+			"description": "Get available ticket categories"
+		},
+		{
+			"name": "Ticket Management",
+			"item": [
+				{
+					"name": "Create New Ticket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "subject",
+									"value": "Order delivery issue",
+									"type": "text",
+									"description": "Ticket subject (required)"
+								},
+								{
+									"key": "category_id",
+									"value": "1",
+									"type": "text",
+									"description": "Category ID (1-6, required)"
+								},
+								{
+									"key": "description",
+									"value": "My order #12345 hasn't arrived yet. It's been 5 days since the expected delivery date.",
+									"type": "text",
+									"description": "Detailed description (required)"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"description": "Optional file attachment (images, documents)",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tickets",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets"
+							]
+						},
+						"description": "Create a new support ticket. Supports file uploads for attachments.\n\n**Required Fields:**\n- subject: Ticket subject\n- category_id: Category ID (1-6)\n- description: Detailed description\n\n**Optional:**\n- file: File attachment (images, documents up to 5MB)\n\n**Supported File Types:** JPEG, JPG, PNG, GIF, PDF, DOC, DOCX, TXT"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "subject",
+											"value": "Order delivery issue",
+											"type": "text"
+										},
+										{
+											"key": "category_id",
+											"value": "1",
+											"type": "text"
+										},
+										{
+											"key": "description",
+											"value": "My order #12345 hasn't arrived yet",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/tickets",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"tickets"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"message\": \"Your ticket has been submitted successfully\",\n  \"data\": {\n    \"ticket_id\": 123,\n    \"subject\": \"Order delivery issue\",\n    \"category\": \"Order Issues\",\n    \"category_id\": 1,\n    \"status\": \"open\",\n    \"date_added\": \"2024-01-15T10:30:00.000Z\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get All Customer Tickets",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tickets?status=all&ticket_id=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "all",
+									"description": "Filter by status: all, open, pending, closed"
+								},
+								{
+									"key": "ticket_id",
+									"value": "",
+									"description": "Filter by specific ticket ID"
+								}
+							]
+						},
+						"description": "Get all tickets for the authenticated customer with optional filtering.\n\n**Query Parameters:**\n- status: Filter by status (all, open, pending, closed)\n- ticket_id: Filter by specific ticket ID\n\n**Response includes:**\n- List of tickets\n- Ticket counts by status\n- Applied filters"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/tickets?status=all",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"tickets"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "all"
+										}
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"ticket_id\": 123,\n      \"subject\": \"Order delivery issue\",\n      \"description\": \"My order hasn't arrived yet\",\n      \"category\": \"Order Issues\",\n      \"status\": \"open\",\n      \"priority\": null,\n      \"file\": \"uploaded_file.jpg\",\n      \"date_added\": \"2024-01-15T10:30:00.000Z\",\n      \"date_modified\": null\n    }\n  ],\n  \"counts\": {\n    \"total\": 5,\n    \"open\": 2,\n    \"pending\": 1,\n    \"closed\": 2\n  },\n  \"filters\": {\n    \"status\": \"all\",\n    \"ticket_id\": \"\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Get Tickets by Status - Open",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tickets?status=open",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "open"
+								}
+							]
+						},
+						"description": "Get only open tickets for the customer"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tickets by Status - Pending",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tickets?status=pending",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "pending"
+								}
+							]
+						},
+						"description": "Get only pending tickets for the customer"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Tickets by Status - Closed",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tickets?status=closed",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "closed"
+								}
+							]
+						},
+						"description": "Get only closed tickets for the customer"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Ticket by ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/tickets/123",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets",
+								"123"
+							]
+						},
+						"description": "Get a specific ticket with all its details and replies.\n\n**Path Parameter:**\n- id: Ticket ID\n\n**Response includes:**\n- Complete ticket details\n- Customer information\n- All replies in chronological order"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "GET",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"url": {
+									"raw": "{{base_url}}/api/tickets/123",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"tickets",
+										"123"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"data\": {\n    \"ticket_id\": 123,\n    \"subject\": \"Order delivery issue\",\n    \"description\": \"My order hasn't arrived yet\",\n    \"category\": \"Order Issues\",\n    \"status\": \"open\",\n    \"file\": \"uploaded_file.jpg\",\n    \"date_added\": \"2024-01-15T10:30:00.000Z\",\n    \"customer_name\": \"John Doe\",\n    \"firstname\": \"John\",\n    \"lastname\": \"Doe\",\n    \"replies\": [\n      {\n        \"reply_id\": 456,\n        \"ticket_id\": 123,\n        \"customer_id\": 8779,\n        \"message\": \"Any update on this?\",\n        \"file\": null,\n        \"user_type\": \"customer\",\n        \"date_added\": \"2024-01-16T09:15:00.000Z\"\n      }\n    ]\n  }\n}"
+						}
+					]
+				}
+			],
+			"description": "Core ticket management operations"
+		},
+		{
+			"name": "Ticket Replies",
+			"item": [
+				{
+					"name": "Add Reply to Ticket",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							}
+						],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "message",
+									"value": "Any update on my order? It's been a week now.",
+									"type": "text",
+									"description": "Reply message (required)"
+								},
+								{
+									"key": "file",
+									"type": "file",
+									"description": "Optional file attachment",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tickets/123/reply",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets",
+								"123",
+								"reply"
+							]
+						},
+						"description": "Add a reply to an existing ticket. Supports file attachments.\n\n**Path Parameter:**\n- id: Ticket ID\n\n**Required Fields:**\n- message: Reply message\n\n**Optional:**\n- file: File attachment\n\n**Note:** Adding a reply automatically updates the ticket status to 'customer-reply'"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									}
+								],
+								"body": {
+									"mode": "formdata",
+									"formdata": [
+										{
+											"key": "message",
+											"value": "Any update on my order?",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "{{base_url}}/api/tickets/123/reply",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"tickets",
+										"123",
+										"reply"
+									]
+								}
+							},
+							"status": "Created",
+							"code": 201,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"message\": \"Reply added successfully\",\n  \"data\": {\n    \"reply_id\": 456,\n    \"message\": \"Any update on my order?\",\n    \"file\": null,\n    \"date_added\": \"2024-01-16T09:15:00.000Z\"\n  }\n}"
+						}
+					]
+				}
+			],
+			"description": "Reply management for tickets"
+		},
+		{
+			"name": "Ticket Status Management",
+			"item": [
+				{
+					"name": "Update Ticket Status - Close",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"closed\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tickets/123/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets",
+								"123",
+								"status"
+							]
+						},
+						"description": "Update ticket status to closed"
+					},
+					"response": [
+						{
+							"name": "Success Response",
+							"originalRequest": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Authorization",
+										"value": "Bearer {{jwt_token}}"
+									},
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"closed\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/tickets/123/status",
+									"host": [
+										"{{base_url}}"
+									],
+									"path": [
+										"api",
+										"tickets",
+										"123",
+										"status"
+									]
+								}
+							},
+							"status": "OK",
+							"code": 200,
+							"_postman_previewlanguage": "json",
+							"header": [
+								{
+									"key": "Content-Type",
+									"value": "application/json"
+								}
+							],
+							"cookie": [],
+							"body": "{\n  \"success\": true,\n  \"message\": \"Ticket status updated successfully\",\n  \"data\": {\n    \"ticket_id\": 123,\n    \"status\": \"closed\"\n  }\n}"
+						}
+					]
+				},
+				{
+					"name": "Update Ticket Status - Reopen",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{jwt_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"open\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/tickets/123/status",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"tickets",
+								"123",
+								"status"
+							]
+						},
+						"description": "Reopen a closed ticket"
+					},
+					"response": []
+				}
+			],
+			"description": "Ticket status management operations"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "your_jwt_token_here",
+			"type": "string"
+		}
+	]
+}

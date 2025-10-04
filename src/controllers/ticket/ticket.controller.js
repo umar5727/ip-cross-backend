@@ -23,9 +23,23 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: function (req, file, cb) {
-    const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|txt/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = allowedTypes.test(file.mimetype);
+    // Allowed file extensions
+    const allowedExtensions = /\.(jpeg|jpg|png|gif|pdf|doc|docx|txt)$/i;
+    
+    // Allowed MIME types
+    const allowedMimeTypes = [
+      'image/jpeg',
+      'image/jpg', 
+      'image/png',
+      'image/gif',
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain'
+    ];
+    
+    const extname = allowedExtensions.test(file.originalname.toLowerCase());
+    const mimetype = allowedMimeTypes.includes(file.mimetype.toLowerCase());
     
     if (mimetype && extname) {
       return cb(null, true);
@@ -48,19 +62,10 @@ const TICKET_CATEGORIES = {
 // Get ticket categories
 exports.getTicketCategories = (req, res) => {
   try {
-    const categories = {
-      general: 'General Inquiry',
-      order: 'Order Related',
-      product: 'Product Issue',
-      payment: 'Payment Issue',
-      shipping: 'Shipping Issue',
-      technical: 'Technical Support',
-      account: 'Account Issue'
-    };
-
+    // Return the same categories that are used in createTicket validation
     res.status(200).json({
       success: true,
-      categories: categories
+      categories: TICKET_CATEGORIES
     });
   } catch (error) {
     console.error('Get ticket categories error:', error);
@@ -73,13 +78,46 @@ exports.getTicketCategories = (req, res) => {
 
 // Create new ticket
 exports.createTicket = [
-  upload.single('file'),
+  upload.fields([
+    { name: 'file', maxCount: 1 },
+    { name: 'attachment', maxCount: 1 },
+    { name: 'image', maxCount: 1 },
+    { name: 'document', maxCount: 1 }
+  ]),
+  (error, req, res, next) => {
+    // Handle multer errors
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          success: false,
+          message: 'File size too large. Maximum size allowed is 5MB.'
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'File upload error: ' + error.message
+      });
+    } else if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    next();
+  },
   async (req, res) => {
     try {
       const { subject, category_id, description } = req.body;
       const customer_id = req.customer?.customer_id;
 
       // Validation
+      if (!customer_id) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required to create ticket'
+        });
+      }
+
       if (!subject || !category_id || !description) {
         return res.status(400).json({
           success: false,
@@ -109,9 +147,23 @@ exports.createTicket = [
         date_added: new Date()
       };
 
-      // Add file if uploaded
-      if (req.file) {
-        ticketData.file = req.file.filename;
+      // Add file if uploaded (check multiple possible field names)
+      let uploadedFile = null;
+      if (req.files) {
+        // Check for files in any of the accepted field names
+        if (req.files.file && req.files.file[0]) {
+          uploadedFile = req.files.file[0];
+        } else if (req.files.attachment && req.files.attachment[0]) {
+          uploadedFile = req.files.attachment[0];
+        } else if (req.files.image && req.files.image[0]) {
+          uploadedFile = req.files.image[0];
+        } else if (req.files.document && req.files.document[0]) {
+          uploadedFile = req.files.document[0];
+        }
+      }
+      
+      if (uploadedFile) {
+        ticketData.file = uploadedFile.filename;
       }
 
       const ticket = await Ticket.create(ticketData);
@@ -142,7 +194,15 @@ exports.createTicket = [
 // Get all tickets for a customer
 exports.getCustomerTickets = async (req, res) => {
   try {
-    const customer_id = req.customer?.customer_id || 8779; // Default to test customer if not available
+    const customer_id = req.customer?.customer_id;
+    
+    if (!customer_id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to view tickets'
+      });
+    }
+    
     const { status = 'all', ticket_id } = req.query;
 
     let whereClause = { customer_id };
@@ -218,7 +278,14 @@ exports.getCustomerTickets = async (req, res) => {
 exports.getTicketById = async (req, res) => {
   try {
     const { id } = req.params;
-    const customer_id = req.customer?.customer_id || 8779; // Default to test customer if not available
+    const customer_id = req.customer?.customer_id;
+    
+    if (!customer_id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to view ticket'
+      });
+    }
 
     const ticket = await Ticket.findOne({
       where: { 
@@ -287,11 +354,39 @@ exports.getTicketById = async (req, res) => {
 // Add reply to ticket
 exports.addReply = [
   upload.single('file'),
+  (error, req, res, next) => {
+    // Handle multer errors
+    if (error instanceof multer.MulterError) {
+      if (error.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({
+          success: false,
+          message: 'File size too large. Maximum size allowed is 5MB.'
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'File upload error: ' + error.message
+      });
+    } else if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+    next();
+  },
   async (req, res) => {
     try {
       const { id } = req.params;
       const { message } = req.body;
-      const customer_id = req.customer?.customer_id || 8779; // Default to test customer if not available
+      const customer_id = req.customer?.customer_id;
+
+      if (!customer_id) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required to add reply'
+        });
+      }
 
       if (!message || message.trim() === '') {
         return res.status(400).json({
@@ -361,7 +456,14 @@ exports.updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const customer_id = req.customer?.customer_id || 8779; // Default to test customer if not available
+    const customer_id = req.customer?.customer_id;
+
+    if (!customer_id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to update ticket status'
+      });
+    }
 
     // Validate status
     const validStatuses = ['open', 'pending', 'closed', 'customer-reply'];
